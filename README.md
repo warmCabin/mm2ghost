@@ -18,6 +18,28 @@ which actually sounds pretty cool!
 - [amaurea's original scripts for SMW](http://tasvideos.org/forum/viewtopic.php?p=219824&highlight=#219824)
 - [rodamaral's repo which implements SMW ghosts + other useful TAS stuff](https://github.com/rodamaral/smw-tas)  
 
+## Examples
+
+Here are a few interesting TAS comparisons I've made in the past.
+
+[![Visan's Ride](https://img.youtube.com/vi/G_akznDrVV0/0.jpg)](https://www.youtube.com/watch?v=G_akznDrVV0)  
+https://www.youtube.com/watch?v=G_akznDrVV0  
+[![Metal w/ Time Stopper](https://img.youtube.com/vi/cRRRI7LMytE/0.jpg)](https://www.youtube.com/watch?v=cRRRI7LMytE)  
+https://www.youtube.com/watch?v=cRRRI7LMytE  
+[![Air Man Any%](https://img.youtube.com/vi/cdNYJuG7OBc/0.jpg)](https://www.youtube.com/watch?v=cdNYJuG7OBc)  
+https://www.youtube.com/watch?v=cdNYJuG7OBc  
+
+## Running this Script
+
+To run this script, you will need two things:
+- [FCEUX](http://www.fceux.com/web/home.html), the emulator this script is written for
+- A Rockman 2 or Mega Man 2 ROM, which I'll assume you obtained by digging around in your copy of Mega Man Legacy Collection 😏
+
+You can open and run your Rockman ROM with Ctrl+O.  
+You can run the lua files by clicking File -> Lua -> New Lua Script Window... and then clicking Browse.
+
+This script was developed with Rockman 2, but minimal testing indicates that it is fully compatible with Mega Man 2. I want to make it fully compatible with both versions, so report bugs no matter what you're playing on!
+
 
 ## Recording a Ghost
 
