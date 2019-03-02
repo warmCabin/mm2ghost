@@ -27,7 +27,7 @@ after all your old ones, resulting in a complete mess. You should record a movie
 
 To create a recording:
   1. Load a movie (recommended)
-  2. Open record_ghost.lua
+  2. Open record_ghost.lua in FCEUX
   3. Type the filepath to record to in the argument box (e.g. "ghosts\test.ghost")
   4. Click "Run"
   5. Let the emulator run for the entire segment you wish to capture (you can safely use turbo)
@@ -41,7 +41,7 @@ real time, which is a ton of fun.
 
 To play a ghost:
   1. Load a movie for comparison (optional)
-  2. Open play_ghost.lua
+  2. Open play_ghost.lua in FCEUX
   3. Type the filepath to read from in the argument box (e.g. "ghosts\test.ghost")
   4. Click "Run"
   5. Watch him go!
