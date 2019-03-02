@@ -16,10 +16,10 @@ will often be out of sync. Ghosts are rather intended to provide a "close enough
 comparisons. If this weren't the case, this could be used as a flicker reduction technique when recording a TAS...
 which actually sounds pretty cool!
 
-amaurea's original scripts for SMW:
-	http://tasvideos.org/forum/viewtopic.php?p=219824&highlight=#219824
-rodamaral's repo which implements ghosts + other useful TAS stuff:
-	https://github.com/rodamaral/smw-tas
+amaurea's original scripts for SMW:  
+	http://tasvideos.org/forum/viewtopic.php?p=219824&highlight=#219824  
+rodamaral's repo which implements ghosts + other useful TAS stuff:  
+	https://github.com/rodamaral/smw-tas  
 
 
 RECORDING A GHOST
