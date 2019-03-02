@@ -60,7 +60,7 @@ To record an AVI:
   2. Specify whatever compression settings and save destination you like
   3. Run play_ghost.lua with the ghost you wish to record playing. Confusing, I know...
   
-You MUST click record AVI BEFORE you run the Lua script. Due to a known bug, play_ghost.lua cannot read any files if you initiate
+You MUST click Record AVI BEFORE you run the Lua script. Due to a known bug, play_ghost.lua cannot read any files if you initiate
 AVI recording while it is running. I think FCEUX closes all other file pointers or something, but I genuinely have no idea.
 
 If the screen wrap bug bothers you, you can edit it out using TASEditor. It's a tedious process, but doable.
@@ -96,7 +96,3 @@ KNOWN BUGS
 
 - Mega Man wraps around when he gets too far ahead or behind
 - Running & climbing animations desync
-
-
-
-
