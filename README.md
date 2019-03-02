@@ -3,12 +3,12 @@
 A ghost is a playback of your actions that runs along through the level with you. They often pass through things
 and interact with invisible obstacles, much like, well, a ghost. They are common in racing games for time trials,
 and they serve as an extremely intuitive comparison for speedrunning as well.  
-amaurea  was the first person to apply such a concept to speedrunning. This script is a version
+amaurea  was the first person to apply such a concept to speedrunning, in the game Super Mario World. This script is a version
 of that idea for Mega Man 2.
 
 A ghost is somewhat like a movie file, but instead of storing inputs to be fed to the emulator, it stores a series of
 "savestates" to be drawn to the screen. Each "savestate" is in reality a few bytes of information that I need to properly
-draw Mega Man. More details on this format in format spects v0.txt
+draw Mega Man. More details on this format can be found in format spects v0.txt
 
 Note that these aren't intended to be perfect emulations of the game's behavior--in particular, Mega Man's running frame
 will often be out of sync. Ghosts are rather intended to provide a "close enough" imitation of a run to help you make
