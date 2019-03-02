@@ -335,7 +335,7 @@ local function update()
 		print(string.format("Switched to weapon %d",weapon))
 	end
 		
-	gui.text(10,10,string.format("%02X",animIndex))
+	--gui.text(10,10,string.format("%02X",animIndex))
 	
 	if AND(flags,1) ~= 0 then
 		--gui.text(10,20,"right facing")
@@ -380,7 +380,7 @@ local function update()
 		local msg = string.format("Unknown animation index %02X! (%sflipped)", animIndex, (animTable==flip) and "" or "not ")
 		gui.text(10,10,msg,"FFFFFF")
 		print(msg)
-		emu.pause()
+		--emu.pause()
 		return
 	end
 	
