@@ -1,5 +1,4 @@
-
-WHAT IS A GHOST?
+## What is a Ghost?
 
 A ghost is a playback of your actions that runs along through the level with you. They often pass through things
 and interact with invisible obstacles, much like, well, a ghost. They are common in racing games for time trials,
@@ -16,13 +15,11 @@ will often be out of sync. Ghosts are rather intended to provide a "close enough
 comparisons. If this weren't the case, this could be used as a flicker reduction technique when recording a TAS...
 which actually sounds pretty cool!
 
-amaurea's original scripts for SMW:  
-    http://tasvideos.org/forum/viewtopic.php?p=219824&highlight=#219824  
-rodamaral's repo which implements ghosts + other useful TAS stuff:  
-    https://github.com/rodamaral/smw-tas  
+- [amaurea's original scripts for SMW](http://tasvideos.org/forum/viewtopic.php?p=219824&highlight=#219824)
+- [rodamaral's repo which implements SMW ghosts + other useful TAS stuff](https://github.com/rodamaral/smw-tas)  
 
 
-RECORDING A GHOST  
+## Recording a Ghost
 
 To record a ghost, you're going to need some inputs. I recommend recording a movie, but you can record it live if you prefer.  
 If you mess up and decide to load a savestate, the recording script will NOT recognize it. It will record your new actions
@@ -37,7 +34,7 @@ To create a recording:
   6. Click "Stop"  
   
   
-PLAYING A GHOST
+## Playing a Ghost
 
 Once you've recorded a ghost file, playing it back is easy! You can compare it to a movie, or even play alongside it in
 real time, which is a ton of fun.
@@ -49,18 +46,18 @@ To play a ghost:
   4. Click "Run"
   5. Watch him go!
   
-Note that ghosts are NOT compatible with savestates in this version. If you want to rewatch a portion of your ghost, you
+Note that ghosts are **not** compatible with savestates in this version. If you want to rewatch a portion of your ghost, you
 must load the beginning of your segment (I recommend you make a savestate there) and restart play_ghost.lua.  
 
 
-RECORDING AN AVI
+## Recording an AVI
 
 To record an AVI:
   1. Click File -> AVI -> Record AVI...
   2. Specify whatever compression settings and save destination you like
   3. Run play_ghost.lua with the ghost you wish to record playing. Confusing, I know...
   
-You MUST click Record AVI BEFORE you run the Lua script. Due to a known bug, play_ghost.lua cannot read any files if you initiate
+You **MUST** click Record AVI **BEFORE** you run the Lua script. Due to a known bug, play_ghost.lua cannot read any files if you initiate
 AVI recording while it is running. I think FCEUX closes all other file pointers or something, but I genuinely have no idea.
 
 If the screen wrap bug bothers you, you can edit it out using TASEditor. It's a tedious process, but doable.  
@@ -75,7 +72,7 @@ This is a lame workaround, and I know it. I'm working on fixing the screen wrap 
 above if screen wrapping cannot be fixed.  
 
 
-TIPS FOR CAPTURING A GOOD GHOST
+## Tips for Capturing a Good Ghost
 
 A good comparison needs a common starting point. I recommend choosing the 1 frame of garbage that can be seen as each
 stage loads. You can also pick the first frame of a jump, menu, boss fight, or whatever else you like. I also recommend recording
@@ -83,7 +80,7 @@ a bit more than you need, to give other ghosts a chance to catch up. I usually r
 a boss fight, but that may be a bit excessive for smaller segments.
 
 
-SAMPLE GHOSTS
+## Sample Ghosts
 
 I've provided a few sample ghosts for you to enjoy. They are all stages from various TASes. The Any% TAS from 2010 was done by
 shinryuu, aglasscage, finalfighter, and pirohiko. The Buster Only (bonly) and Zipless categories are from WIPs by me.  
@@ -92,7 +89,7 @@ screen and you'll see what I mean!
 Using zips and full items, you could possibly complete some stages faster than the zipless or buster-only ghosts. Give it a try!
 
 
-KNOWN BUGS
+## Known Bugs
 
 - Mega Man wraps around when he gets too far ahead or behind
 - Running & climbing animations desync
