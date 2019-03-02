@@ -1,0 +1,8 @@
+
+ghost plans.txt
+ghost readme.txt
+ghosts/*.ghost
+play_ghost_delaytest.lua
+record_ghost_old.lua
+v0ifier.lua
+play_ghost_old.lua
