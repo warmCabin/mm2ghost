@@ -1,0 +1,33 @@
+0x00-0x03: 4-byte signature: 6D 6D 32 67 ("mm2g")
+0x04-0x05: version number: 2-byte, unsigned, big-endian (should be 00 01)
+0x06-0x09: length: 4-byte, unsigned, big-endian
+
+Following this header is length frames of data.
+
+Each frame starts with 5 bytes:
+xPos yPos xScrl flags
+
+xPos:
+Mega Man's X pixel position in the world.
+yPos:
+Mega Man's Y pixel position in the world
+	
+xScrl:
+How many pixels the screen is scrolled.
+This, combined with xPos and the current X scroll in the emulator, is used to calculate the draw position
+on the emulator screen.
+	
+flags:
+7654 3210
+---- -AWF
+|||| ||||
+|||| |||+- Flipped: whether Mega Man's sprite is flipped (facing right). Updates every frame.
+|||| ||+-- Weapon: set when the currently equipped weapon changes. When this bit is 1,
+|||| ||    the index of the new weapon will follow, on the range [0,12].
+|||| |+--- Animation: set when Mega Man's animation index changes. When this bit is 1,
+|||| |     the index of the new animation will follow. 0xFF is a sentinel value unused by
+|||| |     the game, which signifies no animation (Mega Man is offscreen, etc.) in this file.
+++++-+---- Unused. Set to 0.
+	
+If multiple "extra byte" bits are active, their corresponding extra bytes will appear in order from least to most
+significant bit. i.e., Weapon, then Animation.
