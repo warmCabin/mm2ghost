@@ -4,7 +4,7 @@
 
 Following this header is length frames of data.
 
-Each frame starts with 5 bytes:
+Each frame starts with 4 bytes:
 xPos yPos xScrl flags
 
 xPos:
@@ -29,5 +29,5 @@ flags:
 |||| |     the game, which signifies no animation (Mega Man is offscreen, etc.) in this file.
 ++++-+---- Unused. Set to 0.
 	
-If multiple "extra byte" bits are active, their corresponding extra bytes will appear in order from least to most
+If multiple "extra byte" bits are set, their corresponding extra bytes will appear in order from least to most
 significant bit. i.e., Weapon, then Animation.
