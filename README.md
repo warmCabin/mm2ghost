@@ -44,7 +44,7 @@ This script was developed with Rockman 2, but minimal testing indicates that it 
 ## Recording a Ghost
 
 To record a ghost, you're going to need some inputs. I recommend recording a movie, but you can record it live if you prefer.  
-If you mess up and decide to load a savestate, the recording script will NOT recognize it. It will record your new actions
+If you mess up and decide to load a savestate, the recording script will **not** recognize it. It will record your new actions
 after all your old ones, resulting in a complete mess. You should record a movie if you think you will want to use savestates.
 
 To create a recording:
@@ -68,8 +68,7 @@ To play a ghost:
   4. Click "Run"
   5. Watch him go!
   
-Note that ghosts are **not** compatible with savestates in this version. If you want to rewatch a portion of your ghost, you
-must load the beginning of your segment (I recommend you make a savestate there) and restart play_ghost.lua.  
+Unlike recording a ghost, playing a ghost is fully compatible with savestates. Simply load a state and the ghost will travel through time with you.
 
 
 ## Recording an AVI
@@ -115,3 +114,4 @@ Using zips and full items, you could possibly complete some stages faster than t
 
 - Mega Man wraps around when he gets too far ahead or behind
 - Running & climbing animations desync
+- Ghosts may have an incorrect X position for 1 frame when loading savestates
