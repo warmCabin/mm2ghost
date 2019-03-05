@@ -95,7 +95,7 @@ above if screen wrapping cannot be fixed.
 
 ## Tips for Capturing a Good Ghost
 
-A good comparison needs a common starting point. I recommend choosing the 1 frame of garbage that can be seen as each
+A good comparison needs a common starting point. I recommend choosing the [one frame of garbage](https://cdn.discordapp.com/attachments/404188813359972352/552398101973958686/Rockman_2_-_Dr._Wily_no_Nazo_Japan-132.png) that can be seen as each
 stage loads. You can also pick the first frame of a jump, menu, boss fight, or whatever else you like. I also recommend recording
 a bit more than you need, to give other ghosts a chance to catch up. I usually record through the teleport animation after
 a boss fight, but that may be a bit excessive for smaller segments.
@@ -105,7 +105,7 @@ a boss fight, but that may be a bit excessive for smaller segments.
 
 I've provided a few sample ghosts for you to enjoy. They are all stages from various TASes. The Any% TAS from 2010 was done by
 shinryuu, aglasscage, finalfighter, and pirohiko. The Buster Only (bonly) and Zipless categories are from WIPs by me.  
-Each ghost starts at the one frame of garbage at the beginning of its respective stage. Just frame advance during the black loading
+Each ghost starts at the [one frame of garbage](https://cdn.discordapp.com/attachments/404188813359972352/552398101973958686/Rockman_2_-_Dr._Wily_no_Nazo_Japan-132.png) at the beginning of its respective stage. Just frame advance during the black loading
 screen and you'll see what I mean!  
 Using zips and full items, you could possibly complete some stages faster than the zipless or buster-only ghosts. Give it a try!
 
