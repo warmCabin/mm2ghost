@@ -11,6 +11,7 @@ local function readNumBE(file,length)
 	return ans
 end
 
+--read byte or crash. I prefer this to littering my code with asserts.
 local function readByte(file)
 	local str = file:read(1)
 	assert(str, "File ended unexpectedly!")
@@ -101,9 +102,11 @@ local function init()
 	
 end
 
+print(string.format("Loading \"%s\"...",path))
 init() --maybe init could be a do block lol
+print("Done.")
 
-print(string.format("Playing ghost \"%s\" on frame %d",path,emu.framecount()))
+print(string.format("Playing ghost on frame %d",emu.framecount()))
 print(string.format("%d frames of data",ghostLen))
 print()
 	
