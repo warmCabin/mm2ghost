@@ -89,11 +89,12 @@ local ghost = io.open(path,"wb")
 assert(ghost,"Could not open \""..path.."\"")
 
 print("Writing to \""..path.."\"...")
-ghost:write("mm2g\0\0\0\0\0\0") --signature + 2 byte version + 4 byte length. Length will be written later.
+ghost:write("mm2g\0\1\0\0\0\0") --signature + 2 byte version + 4 byte length. Length will be written later.
 
 local gameState = 0
 local flipped = true
 local prevWeapon = 0
+local prevAnimIndex = 0xFF
 local len = 0
 
 PLAYING = 178
@@ -151,10 +152,9 @@ local function main()
 	ghost:write(string.char(xPos))
 	ghost:write(string.char(yPos))
 	ghost:write(string.char(scrlX))
-	if validState() then
-		ghost:write(string.char(animIndex))
-	else
-		ghost:write(string.char(0xFF))
+	
+	if not validState() then
+		animIndex = 0xFF
 	end
 	
 	local flags = 0
@@ -167,14 +167,24 @@ local function main()
 		flags = OR(flags,2)
 	end
 	
+	if animIndex ~= prevAnimIndex then
+		flags = OR(flags,4)
+	end
+	
 	ghost:write(string.char(flags))
 	
-	if weapon ~= prevWeapon then --It kills me, but we have to make this check twice. Maybe I could write a little buffer or something.
+	--It kills me, but we have to make these checks twice. Maybe I could write a little buffer or something.
+	if weapon ~= prevWeapon then
 		ghost:write(string.char(weapon))
 		print(string.format("Switched to weapon %d",weapon))
 	end
 	
+	if animIndex ~= prevAnimIndex then
+		ghost:write(string.char(animIndex))
+	end
+	
 	prevWeapon = weapon
+	prevAnimIndex = animIndex
 
 end
 emu.registerafter(main)

@@ -11,6 +11,13 @@ local function readNumBE(file,length)
 	return ans
 end
 
+--read byte or crash. I prefer this to littering my code with asserts.
+local function readByte(file)
+	local str = file:read(1)
+	assert(str, "File ended unexpectedly!")
+	return str:byte()
+end
+
 --arg is the literal string passed in the Arguments box, no space separation.
 --It can be null sometimes, even if you type something in. No idea why... You can fix this by
 --hitting restart. I give a different error message when this strange bug occurs.
@@ -34,7 +41,7 @@ assert(ghost, string.format("\nCould not open ghost file \"%s\"",path))
 assert(ghost:read(4)=="mm2g", "\nInvalid or corrupt ghost file.")
 
 local version = readNumBE(ghost,2)
-assert(version==0, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version.")
+assert(version<=1, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version.")
 
 local ghostLen = readNumBE(ghost,4)
 local ghostIndex = 0 --keeps track of how many frames have actually been drawn
@@ -44,8 +51,62 @@ local screenOffsetY = -11 --If your emulator behaves differently than mine,
                           --you may need to change them.	  
 	
 local showGhost = true
+local startFrame = emu.framecount() + 2 --offset to line up ghost draws with NES draws.
+local frameCount = 0
+local prevFrameCount = 0
 
-print(string.format("Playing ghost \"%s\"",path))
+local ghostData = {}
+
+--[[
+	Load the contents of the ghost file into memory. Ghost files RLE compress animIndex and weapon data, but this
+	data is expanded in RAM. If we're loading savestates, we shouldn't have to scrub backwards to see where the
+	animIndex was last changed. It's a space/time tradeoff.
+	Maybe I could do some kind of keyframe array or something.
+]]
+local function init()
+	
+	local curWeapon = 0
+	local curAnimIndex = 0xFF
+	
+	for i=1,ghostLen do
+	
+		local data = {}
+	
+		data.xPos = readByte(ghost)
+		data.yPos = readByte(ghost)
+		data.scrl = readByte(ghost)
+		if version==0 then
+			data.animIndex = readByte(ghost)
+		end
+		local flags = readByte(ghost)
+		
+		data.flipped = AND(flags,1)~=0
+		
+		if AND(flags,2)~=0 then
+			data.weapon = readByte(ghost)
+			curWeapon = data.weapon
+		else
+			data.weapon = curWeapon
+		end
+		
+		if AND(flags,4)~=0 and version>0 then
+			data.animIndex = readByte(ghost)
+			curAnimIndex = data.animIndex
+		else
+			data.animIndex = data.animIndex or curAnimIndex
+		end
+		
+		ghostData[startFrame+i-1] = data
+	
+	end
+	
+end
+
+print(string.format("Loading \"%s\"...",path))
+init() --maybe init could be a do block lol
+print("Done.")
+
+print(string.format("Playing ghost on frame %d",emu.framecount()))
 print(string.format("%d frames of data",ghostLen))
 print()
 	
@@ -290,11 +351,35 @@ local animIndex = 0
 local prevAnimIndex = 0
 local animChangeCount = 0
 
+--[[
+	This function is simple enough that it seems like it should be inline.
+	BUT! I have plans to make an online mode that reads straight from the file
+	and doesn't support savestates, like it used to. Just in case memory usage
+	gets out of hand. That behavior will be handled in this function.
+]]
+local function readData()
+	
+	local fc = emu.framecount()
+	if fc < startFrame or fc >= startFrame+ghostLen then
+		return nil
+	end
+	
+	if fc-1 >= startFrame then
+		prevScrlGhost = ghostData[fc-1].scrl
+	end
+	return ghostData[fc]
+	
+end
+
 local function update()
 
 	--It seems scroll is use-then-set, while position is set-then-use, if that makes sense.
 	--It's necessary to use the previous frame's scroll value to make things line up properly.
-	prevScrlGhost = scrlGhost
+	--FIXME: when panning backwards in TASEditor, the ghost is fucky.
+	--This is because it uses the wrong prevScrlEmu value.
+	--The solution is to store a table of all the scroll values.....is it worth it?
+	
+	--prevScrlGhost = scrlGhost
 	prevScrlEmu = scrlEmu
 	prevScrlYEmu = scrlYEmu
 	prevAnimIndex = animIndex
@@ -307,48 +392,49 @@ local function update()
 	local yPosEmu = memory.readbyte(0x4A0)
 	
 	--Hack to line up ghost draws with NES draws.
-	if skip then
+	--[[if skip then
 		skip = false
 		return
-	end
+	end]]
+	
+	ghostIndex = emu.framecount() - startFrame
 	
 	if ghostIndex==ghostLen then
 		print("Ghost finished playing on frame "..emu.framecount()..".")
-		print(string.format("Changed animation %d times, or %.1f%% of the ghost.", animChangeCount, animChangeCount/ghostLen*100))
-		print(string.format("%d bytes can be saved (%.01f%% of the file).",ghostLen-animChangeCount, (ghostLen-animChangeCount)/(ghostLen*5)*100))
-		ghost:close()
-		return gui.register() --Ghost is done playing. Deregister our callback and return.
+		--ghost:close()
+		--return gui.register() --Ghost is done playing. Unregister our callback and return.
 	end
 	
-	ghostIndex = ghostIndex + 1 
+	--ghostIndex = ghostIndex + 1 
 	
-	local xPos = ghost:read(1):byte()
-	local yPos = ghost:read(1):byte()
-	scrlGhost = ghost:read(1):byte()
+	local data = readData()
+	if not data then return end --this frame is out of range of the ghost
+	
+	local xPos = data.xPos
+	local yPos = data.yPos
+	scrlGhost = data.scrl
 	local xScrl = prevScrlGhost
-	animIndex = ghost:read(1):byte()
-	local flags = ghost:read(1):byte()
+	animIndex = data.animIndex
 	local animTable
 	
-	if AND(flags,2) ~= 0 then
+	--Try to restore this functionality.
+	--Do I reall need to, though?
+	--[[if AND(flags,2) ~= 0 then
 		weapon = ghost:read(1):byte()
 		print(string.format("Switched to weapon %d",weapon))
-	end
+	end ]]
 		
 	--gui.text(10,10,string.format("%02X",animIndex))
 	
-	if AND(flags,1) ~= 0 then
-		--gui.text(10,20,"right facing")
+	if data.flipped then --right facing
 		animTable = anim
-	else
-		--gui.text(10,20,"left facing (flipped)")
+	else                 --left facing
 		animTable = flip
 	end
 	
-	if animIndex==0xFF then
-		--gui.text(10,10,"Nothing to draw!")
+	if animIndex==0xFF then --Nothing to draw!
 		return
-	end --TODO: indicate this with flags in extra byte? How often does animation really change?
+	end
 	
 	if animIndex ~= prevAnimIndex then
 		if (animIndex==0x08 and prevAnimIndex==0x09) or (animIndex==0x09 and prevAnimIndex==0x08) then
@@ -361,15 +447,9 @@ local function update()
 				animTimer = -1
 			end
 		end
-		animChangeCount = animChangeCount + 1
 	end
 	
 	local scrlOffsetX = xScrlDraw - xScrl
-	--gui.text(10,20,"scroll offset: "..scrlOffsetX)
-	--if scrlOffsetX>=128 then
-	--	gui.text(10,10,"You're killing it!")
-	--	return
-	--end
 	
 	if not animTable[animIndex] then
 		local drawX = math.ceil(AND(xPos-scrlOffsetX+255-xScrl,255)) + screenOffsetX + 8
@@ -385,7 +465,7 @@ local function update()
 	end
 	
 	local img = animTable[animIndex][animFrame][1] --does this copy the whole string over?
-	if weapon ~= 0 then --TODO: PRECOMP THESE!!! This processes several kilobytes of data 60 times a second!!
+	if weapon ~= 0 then --TODO: PRECOMP THESE!!! This processes 2KB of data 60 times a second!!
 		img = paletteize(img,weapon)
 	end
 	
@@ -400,10 +480,11 @@ local function update()
 	local drawY = yPos - yScrlDraw
 	if drawY<0 then
 		drawY = drawY + 240
-	elseif drawY > 240 then
-		drawY = drawY - 240
 	end
-	drawY = drawY + offsetY + screenOffsetY -- + 1
+	--elseif drawY > 240 then
+	--	drawY = drawY - 240
+	--end
+	drawY = drawY + offsetY + screenOffsetY
 	
 	local duration = animTable[animIndex][animFrame][4]
 	if duration and duration>0 then
@@ -433,19 +514,16 @@ local function update()
 	--retro style
 	--[[if emu.framecount()%2==0 then
 		gui.image(drawX,drawY,img,1.0)
-	end]]
+	end--]]
 
 end
-
-local frameCount = 0
-local prevFrameCount = 0
 
 local function main()
 	
 	prevFrameCount = frameCount
 	frameCount = emu.framecount()
 	
-	if frameCount>prevFrameCount then
+	if frameCount ~= prevFrameCount then
 		update()
 	end
 	
@@ -456,3 +534,9 @@ local function hideButton()
 	showGhost = not showGhost
 end
 taseditor.registermanual(hideButton,"Show/Hide Ghost")
+
+emu.registerexit(function()
+	print("Ghosts...")
+	print("...don't...")
+	print("...DIE!")
+end)
