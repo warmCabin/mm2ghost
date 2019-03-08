@@ -41,7 +41,7 @@ assert(ghost, string.format("\nCould not open ghost file \"%s\"",path))
 assert(ghost:read(4)=="mm2g", "\nInvalid or corrupt ghost file.")
 
 local version = readNumBE(ghost,2)
-assert(version==0, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version.")
+assert(version<=1, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version.")
 
 local ghostLen = readNumBE(ghost,4)
 local ghostIndex = 0 --keeps track of how many frames have actually been drawn
@@ -89,7 +89,7 @@ local function init()
 			data.weapon = curWeapon
 		end
 		
-		if AND(flags,4)~=0 then
+		if AND(flags,4)~=0 and version>0 then
 			data.animIndex = readByte(ghost)
 			curAnimIndex = data.animIndex
 		else
@@ -534,3 +534,9 @@ local function hideButton()
 	showGhost = not showGhost
 end
 taseditor.registermanual(hideButton,"Show/Hide Ghost")
+
+emu.registerexit(function()
+	print("Ghosts...")
+	print("...don't...")
+	print("...DIE!")
+end)
