@@ -8,7 +8,7 @@ of that idea for Mega Man 2.
 
 A ghost is somewhat like a movie file, but instead of storing inputs to be fed to the emulator, it stores a series of
 "savestates" to be drawn to the screen. Each "savestate" is in reality a few bytes of information that I need to properly
-draw Mega Man. More details on this format can be found in format spects v0.txt
+draw Mega Man. More details on this format can be found in format specs v0.txt
 
 Note that these aren't intended to be perfect emulations of the game's behavior--in particular, Mega Man's running frame
 will often be out of sync. Ghosts are rather intended to provide a "close enough" imitation of a run to help you make
@@ -96,7 +96,7 @@ above if screen wrapping cannot be fixed.
 ## Tips for Capturing a Good Ghost
 
 A good comparison needs a common starting point. I recommend choosing the [one frame of garbage](https://cdn.discordapp.com/attachments/404188813359972352/552398101973958686/Rockman_2_-_Dr._Wily_no_Nazo_Japan-132.png) that can be seen as each
-stage loads. You can also pick the first frame of a jump, menu, boss fight, or whatever else you like. I also recommend recording
+stage loads (just frame advance during the black loading screen and you'll find it). You can also pick the first frame of a jump, menu, boss fight, or whatever else you like. I also recommend recording
 a bit more than you need, to give other ghosts a chance to catch up. I usually record through the teleport animation after
 a boss fight, but that may be a bit excessive for smaller segments.
 
@@ -105,8 +105,8 @@ a boss fight, but that may be a bit excessive for smaller segments.
 
 I've provided a few sample ghosts for you to enjoy. They are all stages from various TASes. The Any% TAS from 2010 was done by
 shinryuu, aglasscage, finalfighter, and pirohiko. The Buster Only (bonly) and Zipless categories are from WIPs by me.  
-Each ghost starts at the [one frame of garbage](https://cdn.discordapp.com/attachments/404188813359972352/552398101973958686/Rockman_2_-_Dr._Wily_no_Nazo_Japan-132.png) at the beginning of its respective stage. Just frame advance during the black loading
-screen and you'll see what I mean!  
+Each ghost starts at the [one frame of garbage](https://cdn.discordapp.com/attachments/404188813359972352/552398101973958686/Rockman_2_-_Dr._Wily_no_Nazo_Japan-132.png) at the beginning of its respective stage. Again, just frame advance during the black loading
+screen and you'll find it.  
 Using zips and full items, you could possibly complete some stages faster than the zipless or buster-only ghosts. Give it a try!
 
 
