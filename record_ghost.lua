@@ -107,10 +107,11 @@ DEAD = 156 --also scrolling/waiting
 MENU = 197
 READY = 82
 BOSS_KILL = 143
+DOUBLE_DEATH = 134 --it's a different gamestate somehow!!
 
 local function validState()
 	gameState = memory.readbyte(0x01FE)
-	return gameState==PLAYING or gameState==BOSS_RUSH or gameState==LAGGING or gameState==HEALTH_REFILL or gameState==MENU or gameState==BOSS_KILL or gameState==LAGGING2
+	return gameState==PLAYING or gameState==BOSS_RUSH or gameState==LAGGING or gameState==HEALTH_REFILL or gameState==MENU or gameState==BOSS_KILL or gameState==LAGGING2 or gameState==DOUBLE_DEATH
 end
 
 --[[

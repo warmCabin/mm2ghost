@@ -423,6 +423,7 @@ local function update()
 		weapon = ghost:read(1):byte()
 		print(string.format("Switched to weapon %d",weapon))
 	end ]]
+	weapon = data.weapon
 		
 	--gui.text(10,10,string.format("%02X",animIndex))
 	
@@ -478,13 +479,19 @@ local function update()
 	--For X I can use cool bitwise shit (stolen from mm2_minimap.lua), but wrapping by multiples of 240
 	--isn't quite so elegant.
 	local drawY = yPos - yScrlDraw
+	--gui.text(0,10,"drawY: "..drawY)
+	--gui.text(0,30,"yScrlDraw: "..yScrlDraw)
+	--gui.text(0,40,"yPos: "..yPos)
 	if drawY<0 then
 		drawY = drawY + 240
 	end
 	--elseif drawY > 240 then
 	--	drawY = drawY - 240
 	--end
+	--gui.text(0,20,"drawY after: "..drawY)
 	drawY = drawY + offsetY + screenOffsetY
+	--FIXME: Y position is signed. When Mega Man jumps off the top of the screen, it goes negative...i.e., Y=255
+	--But, readByteUnsigned is not a valid choice here, because screen is 240 pixels high. What to do?? Maybe sreen number changes??
 	
 	local duration = animTable[animIndex][animFrame][4]
 	if duration and duration>0 then
