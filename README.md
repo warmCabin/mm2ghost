@@ -115,3 +115,4 @@ Using zips and full items, you could possibly complete some stages faster than t
 - Mega Man wraps around when he gets too far ahead or behind
 - Running & climbing animations desync
 - Ghosts may have an incorrect X position for 1 frame when loading savestates
+- Ghosts will jitter when above the screen border (negative Y position) while you are scrolling. What an edge case!
