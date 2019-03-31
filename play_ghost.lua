@@ -128,12 +128,6 @@ local prevScrlYEmu = 0
 local scrlYEmu = 0
 local weapon = 0
 
-local animFrame = 1
-local animTimer = -1
-local animIndex = 0
-local prevAnimIndex = 0
-local animChangeCount = 0
-
 --[[
 	This function is simple enough that it seems like it should be inline.
 	BUT! I have plans to make an online mode that reads straight from the file
@@ -167,7 +161,7 @@ local function update()
 	prevScrlYEmu = scrlYEmu
 	prevAnimIndex = animIndex
 	scrlEmu = memory.readbyte(0x001F)
-	scrlYEmu = memory.readbyte(0x0022)--memory.readbyte(0x0022)
+	scrlYEmu = memory.readbyte(0x0022)
 	
 	local xScrlDraw = prevScrlEmu
 	local yScrlDraw = prevScrlYEmu
@@ -194,68 +188,29 @@ local function update()
 	local yPos = data.yPos
 	scrlGhost = data.scrl
 	local xScrl = prevScrlGhost
-	animIndex = data.animIndex
-	local animTable
 	
-	--Try to restore this functionality by storing prevWeapon.
-	--Do I really need to, though?
-	--[[if AND(flags,2) ~= 0 then
-		weapon = ghost:read(1):byte()
-		print(string.format("Switched to weapon %d",weapon))
-	end ]]
-	weapon = data.weapon
-		
-	--gui.text(10,10,string.format("%02X",animIndex))
+	local offsetX, offsetY, img = anm.update(data)
 	
-	if data.flipped then --right facing
-		animTable = anm.anim
-	else                 --left facing
-		animTable = anm.flip
-	end
-	
-	--TODO: maybe put all this in an anm function? anm.update(data) or some shit? which returns: xOffset,yOffset,img?
-	--It would handle the animation timer and stuff, while this update func would handle the draw position.
-	--anm.update would need to know: animIndex, flip
-	
-	if animIndex==0xFF then --Nothing to draw!
+	if not offsetX then --Mega Man not on screen this frame.
 		return
-	end
-	
-	if animIndex ~= prevAnimIndex then
-		if (animIndex==0x08 and prevAnimIndex==0x09) or (animIndex==0x09 and prevAnimIndex==0x08) then
-			--Mega Man still running. Preserve frame when switching between these indexes.
-		else
-			animFrame = 1
-			if animTable[animIndex] then
-				animTimer = animTable[animIndex][animFrame][4]
-			else
-				animTimer = -1
-			end
-		end
 	end
 	
 	local scrlOffsetX = xScrlDraw - xScrl
 	
-	if not animTable[animIndex] then
+	if not img then --unknown animation index! Draw an error squarror.
+		local animIndex = offsetX
+		local msg = offsetY
 		local drawX = math.ceil(AND(xPos-scrlOffsetX+255-xScrl,255)) + screenOffsetX + 8
 		local drawY = yPos + screenOffsetY
 		--local drawY = math.ceil(AND(yPos-curScrlY+255,255)) + screenOffsetY
 		gui.box(drawX,drawY,drawX+24,drawY+24)
 		gui.text(drawX+8,drawY,string.format("%02X",animIndex))
-		local msg = string.format("Unknown animation index %02X! (%sflipped)", animIndex, (animTable==anm.flip) and "" or "not ")
 		gui.text(10,10,msg,"FFFFFF") --TODO: add a nice queue for dynamic gui.text messages
 		print(msg)
 		--emu.pause()
 		return
 	end
 	
-	local img = animTable[animIndex][animFrame][1] --does this copy the whole string over?
-	if weapon ~= 0 then --TODO: PRECOMP THESE!!! This processes 2KB of data 60 times a second!!
-		img = anm.paletteize(img,weapon)
-	end
-	
-	local offsetX = animTable[animIndex][animFrame][2]
-	local offsetY = animTable[animIndex][animFrame][3]
 	local drawX    = math.ceil(AND(xPos-scrlOffsetX+255-xScrl,255)) + offsetX + screenOffsetX
 	local drawXEmu = math.ceil(AND(xPosEmu+255-xScrlDraw,255)) + offsetX + screenOffsetX
 	
@@ -276,18 +231,6 @@ local function update()
 	drawY = drawY + offsetY + screenOffsetY
 	--FIXME: Y position is signed...sort of. When Mega Man jumps off the top of the screen, it goes negative...i.e., Y=255
 	--But, readByteSigned is not a valid choice here, because Y >= 128 can also signify halfway down the screen...what to do???
-	
-	local duration = animTable[animIndex][animFrame][4]
-	if duration and duration>0 then
-		animTimer = animTimer - 1
-	else
-		animTimer = -1
-	end
-	
-	if animTimer==0 then
-		animFrame = animFrame % #animTable[animIndex] + 1
-		animTimer = animTable[animIndex][animFrame][4]
-	end
 	
 	--[[
 	--simple check for screen wrap behavior. It doesn't work at all.

@@ -1,4 +1,11 @@
 
+--[[
+	This file handles all the gritty details of animating ghosts. Call mod.update every frame, and check its
+	return values to get the image to draw and the offsets to draw it at.
+	It also provides public access to the animation tables, the palette table, and the paletteize function,
+	in case you need them. play_ghost.lua does not use them at all; just mod.update.
+]]
+
 local mod = {}
 
 --[[
@@ -71,9 +78,9 @@ local teleport1 = readGD("mmframes/teleport.gd")
 local climb = readGD("mmframes/climb.gd")
 
 --[[
-	Maps the animation indexes to image files.
-	These correspond to 0x400 in RAM, and are stored as the 4th byte of every tuple in a ghost file.
-	format: gd image, x offset, y offset, duration. Duration of 0 or nil means forever, i.e. a non-looping animation.
+	Maps the animation indexes to image files. Each index is a table containing one or more frames of animation.
+	These correspond to 0x400 in RAM, and are stored RLE compressed in ghost files.
+	frame format: gd image, x offset, y offset, duration. Duration of 0 or nil means forever, i.e. a non-looping animation.
 ]]
 local anim = {}
 anim[0x00] = {{readGD("mmframes/standing.gd"),0,0,91}, {readGD("mmframes/blinking.gd"),4,0,9}}
@@ -130,7 +137,7 @@ flip[0x10] = flip[0x04]
 flip[0x11] = flip[0x01]
 flip[0x13] = flip[0x03]
 flip[0x14] = flip[0x00]
-flip[0x15] = flip[0x01] --flip[0x09]
+flip[0x15] = flip[0x01] --flip[0x09] (???)
 flip[0x17] = flip[0x03]
 flip[0x18] = {{flipGD(anim[0x18][1][1]),2,0}}
 flip[0x1A] = anim[0x1A]
@@ -143,6 +150,12 @@ flip[0x22] = flip[0x1E]
 flip[0x26] = anim[0x26]
 
 mod.flip = flip
+
+--[[
+for k,v in pairs(anim) do
+	flip[k] = {flipGD(anim[k][1]),0,anim[k][3],anim[k][4]}
+	flip[k][2] = 
+end ]]
 
 local palettes = {} --outline, undies, body
 palettes[0]  = {{r=0,g=0,b=0},{r=0,g=112,b=236},{r=0,g=232,b=216}}     --P
@@ -223,10 +236,85 @@ local function paletteize(gdStr,pIndex)
 end
 mod.paletteize = paletteize
 
+local animFrame = 1
+local animTimer = -1
+local animIndex = 0
+local prevAnimIndex = 0
+
 --[[
-for k,v in pairs(anim) do
-	flip[k] = {flipGD(anim[k][1]),0,anim[k][3],anim[k][4]}
-	flip[k][2] = 
-end ]]
+	Updates the animation state (timer, etc.) and returns:
+		if the animation index is normal:
+			offset X, offset Y, image to be drawn.
+		if the animation index is 0xFF (nothing to draw):
+			nil
+		if the animation index is unknown:
+			animation index, error message
+	
+]]
+function mod.update(data)
+	
+	assert(type(data)=="table", "animation.update must be called with frame data table")
+	
+	animIndex = data.animIndex
+	local animTable
+	local weapon = data.weapon
+		
+	--gui.text(10,10,string.format("%02X",animIndex))
+	
+	if data.flipped then --right facing
+		animTable = anim
+	else                 --left facing
+		animTable = flip
+	end
+	
+	if animIndex==0xFF then --Nothing to draw!
+		return
+	end
+	
+	--special case: we need to preserve the animation frame between regular running, and running+shooting (indexes 8 and 9)
+	if animIndex ~= prevAnimIndex then
+		if (animIndex==0x08 and prevAnimIndex==0x09) or (animIndex==0x09 and prevAnimIndex==0x08) then
+			--Mega Man still running. Preserve frame when switching between these indexes.
+		else
+			animFrame = 1
+			if animTable[animIndex] then
+				animTimer = animTable[animIndex][animFrame][4]
+			else
+				animTimer = -1
+			end
+		end
+	end
+	
+	--unknwon animation index. Return the index and an error message to be handled by the main update code.
+	if not animTable[animIndex] then
+		return animIndex, string.format("Unknown animation index %02X! (%sflipped)", animIndex, (animTable==flip) and "" or "not ")
+	end
+	
+	local img = animTable[animIndex][animFrame][1] --does this copy the whole string over?
+	if weapon ~= 0 then --TODO: PRECOMP THESE!!! This processes 2KB of data 60 times a second!!
+		img = paletteize(img,weapon)
+	end
+	
+	local offsetX = animTable[animIndex][animFrame][2]
+	local offsetY = animTable[animIndex][animFrame][3]
+	
+	--update animation timer
+	local duration = animTable[animIndex][animFrame][4]
+	if duration and duration>0 then
+		animTimer = animTimer - 1
+	else
+		animTimer = -1
+	end
+	
+	if animTimer==0 then
+		animFrame = animFrame % #animTable[animIndex] + 1
+		animTimer = animTable[animIndex][animFrame][4]
+	end
+	
+	prevAnimIndex = animIndex
+	
+	return offsetX,offsetY,img --return values from before the update
+	
+end
 
 return mod
