@@ -8,7 +8,7 @@ of that idea for Mega Man 2.
 
 A ghost is somewhat like a movie file, but instead of storing inputs to be fed to the emulator, it stores a series of
 "savestates" to be drawn to the screen. Each "savestate" is in reality a few bytes of information that I need to properly
-draw Mega Man. More details on this format can be found in format specs v0.txt
+draw Mega Man. More details on this format can be found in format specs v1.txt
 
 Note that these aren't intended to be perfect emulations of the game's behavior--in particular, Mega Man's running frame
 will often be out of sync. Ghosts are rather intended to provide a "close enough" imitation of a run to help you make
@@ -74,12 +74,10 @@ Unlike recording a ghost, playing a ghost is fully compatible with savestates. S
 ## Recording an AVI
 
 To record an AVI:
-  1. Click File -> AVI -> Record AVI...
-  2. Specify whatever compression settings and save destination you like
-  3. Run play_ghost.lua with the ghost you wish to record playing. Confusing, I know...
-  
-You **MUST** click Record AVI **BEFORE** you run the Lua script. Due to a known bug, play_ghost.lua cannot read any files if you initiate
-AVI recording while it is running. I think FCEUX closes all other file pointers or something, but I genuinely have no idea.
+  1. Run play_ghost.lua with the ghost you wish to record playing. Confusing, I know...
+  2. Frame advance at least once. Due to a bug in FCEUX, you *must* do this.\*
+  3. Click File -> AVI -> Record AVI...
+  4. Specify whatever compression settings and save destination you like 
 
 If the screen wrap bug bothers you, you can edit it out using TASEditor. It's a tedious process, but doable.  
 play_ghost.lua provides a manual button in the TASEditor interface labelled "Show/Hide Ghost". When clicked, it toggles the current
@@ -91,6 +89,9 @@ if Mega Man disappeared on frame 100, reappeared on frame 150, and disappeared a
 frames 99, 149, and 247.  
 This is a lame workaround, and I know it. I'm working on fixing the screen wrap behavior; I may add programmatic support to the process
 above if screen wrapping cannot be fixed.  
+
+\*Lua scripts don't get run until the next frame advance. I believe FCEUX closes all other file pointers or something when you start recording an AVI, but I genuinely have no idea. This is a bug that I am aware of and cannot fix, at least not without forking FCEUX and digging into what is probably a really boring section of its code...  
+Alternatively, you can click Record AVI *before* running the script.
 
 
 ## Tips for Capturing a Good Ghost
