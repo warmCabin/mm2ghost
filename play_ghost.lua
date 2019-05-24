@@ -91,7 +91,7 @@ local function init()
 			data.weapon = curWeapon
 		end
 		
-		if AND(flags,4)~=0 and version>0 then
+		if AND(flags,4)~=0 and version>=1 then
 			data.animIndex = readByte(ghost)
 			curAnimIndex = data.animIndex
 		else
@@ -119,9 +119,6 @@ print()
 		screen offset X and Y
 ]]
 
-local skip = true
-local prevScrlGhost = 0
-local scrlGhost = 0
 local prevScrlEmu = 0
 local scrlEmu = 0
 local prevScrlYEmu = 0
@@ -168,13 +165,6 @@ local function update()
 	local xPosEmu = memory.readbyte(0x460)
 	local yPosEmu = memory.readbyte(0x4A0)
 	
-	--Hack to line up ghost draws with NES draws.
-	--[[if skip then
-		skip = false
-		return
-	end]]
-	
-	--ghostIndex = ghostIndex + 1 
 	ghostIndex = emu.framecount() - startFrame
 	
 	if ghostIndex==ghostLen then
@@ -186,8 +176,6 @@ local function update()
 	
 	local xPos = data.xPos
 	local yPos = data.yPos
-	scrlGhost = data.scrl
-	local xScrl = prevScrlGhost
 	
 	local offsetX, offsetY, img = anm.update(data)
 	
@@ -195,12 +183,10 @@ local function update()
 		return
 	end
 	
-	local scrlOffsetX = xScrlDraw - xScrl
-	
 	if not img then --unknown animation index! Draw an error squarror.
 		local animIndex = offsetX
 		local msg = offsetY
-		local drawX = math.ceil(AND(xPos-scrlOffsetX+255-xScrl,255)) + screenOffsetX + 8
+		local drawX = math.ceil(AND(xPos+255-xScrlDraw,255)) + screenOffsetX + 8
 		local drawY = yPos + screenOffsetY
 		--local drawY = math.ceil(AND(yPos-curScrlY+255,255)) + screenOffsetY
 		gui.box(drawX,drawY,drawX+24,drawY+24)
@@ -211,8 +197,8 @@ local function update()
 		return
 	end
 	
-	local drawX    = math.ceil(AND(xPos-scrlOffsetX+255-xScrl,255)) + offsetX + screenOffsetX
-	local drawXEmu = math.ceil(AND(xPosEmu+255-xScrlDraw,255)) + offsetX + screenOffsetX
+	local drawX    = math.ceil(AND(xPos+255-xScrlDraw,255)) + offsetX + screenOffsetX
+	--local drawXEmu = math.ceil(AND(xPosEmu+255-xScrlDraw,255)) + offsetX + screenOffsetX --might be useful for wrap prevention
 	
 	--Y position wrapping.
 	--For X I can use cool bitwise shit (stolen from mm2_minimap.lua), but wrapping by multiples of 240
