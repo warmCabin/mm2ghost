@@ -17,6 +17,7 @@ Animation index is at 0x400.
 	15 - run n' shoot, animate to stand n' shoot (why?)
 	17 - also stand n' throw?????????????
 	18 - knockback
+	19 - knockback moonwalk*
 	1A - teleport in
 	1B - ladder climb
 	1C - climb n' shoot
@@ -27,3 +28,7 @@ Animation index is at 0x400.
 	
 0x0042 seems to indicate facing, in an abstract gameplay sort of way.
 40 = right, 0 = left.
+
+* You can release an atomic fire during knockback, even though you can't properly initiate a charge in this state.
+  If you do this, you will be in a strange state where Mega Man is stunned and flashing like with normal knockback,
+  but in a walking animation instead of a knocked back animation. It's hard to notice under the flashing.
