@@ -49,6 +49,10 @@
 	
 	If multiple "extra byte" bits are active, their corresponding extra bytes will appear in order from least to most
 	significant bit. i.e., Weapon, then Animation.
+	
+	TODO: prompt for "This file already exists." (gui.popup)
+	
+	TODO: Can't create new directories?
 
 ]]
 
@@ -89,12 +93,13 @@ local ghost = io.open(path,"wb")
 assert(ghost,"Could not open \""..path.."\"")
 
 print("Writing to \""..path.."\"...")
-ghost:write("mm2g\0\1\0\0\0\0") --signature + 2 byte version + 4 byte length. Length will be written later.
+ghost:write("mm2g\0\2\0\0\0\0") --signature + 2 byte version + 4 byte length. Length will be written later.
 
 local gameState = 0
 local flipped = true
 local prevWeapon = 0
 local prevAnimIndex = 0xFF
+local prevScreen = -1
 local len = 0
 
 PLAYING = 178
@@ -109,9 +114,14 @@ READY = 82
 BOSS_KILL = 143
 DOUBLE_DEATH = 134 --it's a different gamestate somehow!!
 
+local validStates = {PLAYING, BOSS_RUSH, LAGGING, HEALTH_REFILL, MENU, BOSS_KILL, LAGGING2, DOUBLE_DEATH}
+
 local function validState()
 	gameState = memory.readbyte(0x01FE)
-	return gameState==PLAYING or gameState==BOSS_RUSH or gameState==LAGGING or gameState==HEALTH_REFILL or gameState==MENU or gameState==BOSS_KILL or gameState==LAGGING2 or gameState==DOUBLE_DEATH
+	for _,state in ipairs(validStates) do
+		if state==gameState then return true end
+	end
+	return false
 end
 
 --[[
@@ -144,15 +154,13 @@ local function main()
 
 	local xPos = memory.readbyte(0x460)
 	local yPos = memory.readbyte(0x4A0)
-	local scrlX = memory.readbyte(0x001F)
-	local scrlY = memory.readbyte(0x0022)
 	local animIndex = memory.readbyte(0x0400)
 	local weapon = memory.readbyte(0x00A9)
+	local screen = memory.readbyte(0x0440)
 	flipped = isFlipped()
 	
 	ghost:write(string.char(xPos))
 	ghost:write(string.char(yPos))
-	ghost:write(string.char(scrlX))
 	
 	if not validState() then
 		animIndex = 0xFF
@@ -160,32 +168,42 @@ local function main()
 	
 	local flags = 0
 	
-	if isFlipped() then --00 20 2E 2F
+	if isFlipped() then
 		flags = OR(flags,1)
 	end
 	
 	if weapon ~= prevWeapon then
-		flags = OR(flags,2)
+		flags = OR(flags,2) --buff[#buff+1] = weapon
+		print(string.format("Switched to weapon %d",weapon))
 	end
 	
 	if animIndex ~= prevAnimIndex then
 		flags = OR(flags,4)
 	end
 	
+	if screen ~= prevScreen then
+		flags = OR(flags,8)
+	end
+	
 	ghost:write(string.char(flags))
 	
 	--It kills me, but we have to make these checks twice. Maybe I could write a little buffer or something.
+	--ghost:write(string.char(unpack(buff)))
 	if weapon ~= prevWeapon then
 		ghost:write(string.char(weapon))
-		print(string.format("Switched to weapon %d",weapon))
 	end
 	
 	if animIndex ~= prevAnimIndex then
 		ghost:write(string.char(animIndex))
 	end
 	
+	if screen ~= prevScreen then
+		ghost:write(string.char(screen))
+	end
+	
 	prevWeapon = weapon
 	prevAnimIndex = animIndex
+	prevScreen = screen
 
 end
 emu.registerafter(main)

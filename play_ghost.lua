@@ -42,7 +42,7 @@ assert(ghost, string.format("\nCould not open ghost file \"%s\"",path))
 assert(ghost:read(4)=="mm2g", "\nInvalid or corrupt ghost file (missing signature).")
 
 local version = readNumBE(ghost,2)
-assert(version<=1, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version.")
+assert(version<=2, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version.")
 
 local ghostLen = readNumBE(ghost,4)
 local ghostIndex = 0 --keeps track of how many frames have actually been drawn
@@ -69,6 +69,7 @@ local function init()
 	
 	local curWeapon = 0
 	local curAnimIndex = 0xFF
+	local curScreen
 	
 	for i=1,ghostLen do
 	
@@ -76,9 +77,11 @@ local function init()
 	
 		data.xPos = readByte(ghost)
 		data.yPos = readByte(ghost)
-		data.scrl = readByte(ghost)
+		if version<=1 then
+			readByte(ghost) --X scroll was uselessly stored in versions 0 and 1; read and discard it
+		end
 		if version==0 then
-			data.animIndex = readByte(ghost)
+			data.animIndex = readByte(ghost) --animIndex was stored for every frame in version 0
 		end
 		local flags = readByte(ghost)
 		
@@ -91,11 +94,18 @@ local function init()
 			data.weapon = curWeapon
 		end
 		
-		if AND(flags,4)~=0 and version>=1 then
+		if AND(flags,4)~=0 then
 			data.animIndex = readByte(ghost)
 			curAnimIndex = data.animIndex
 		else
 			data.animIndex = data.animIndex or curAnimIndex
+		end
+		
+		if AND(flags,8)~=0 then
+			data.screen = readByte(ghost)
+			curScreen = data.screen
+		else
+			data.screen = curScreen --curScreen will stay at nil in versions before 2
 		end
 		
 		ghostData[startFrame+i-1] = data
@@ -123,6 +133,9 @@ local prevScrlEmu = 0
 local scrlEmu = 0
 local prevScrlYEmu = 0
 local scrlYEmu = 0
+local prevGameState = 0
+local gameState = 0
+local scrollStartFrame = 0
 local weapon = 0
 
 --[[
@@ -141,6 +154,7 @@ local function readData()
 	if fc > startFrame then
 		prevScrlGhost = ghostData[fc-1].scrl
 	end
+	ghostData[fc].screen = ghostData[fc].screen or memory.readbyte(0x0440)
 	return ghostData[fc]
 	
 end
@@ -153,17 +167,39 @@ local function update()
 	--This is because it uses the wrong prevScrlEmu value.
 	--The solution is to store a table of all the scroll values.....is it worth it?
 	
-	--prevScrlGhost = scrlGhost
-	prevScrlEmu = scrlEmu
+	prevScrlXEmu = scrlXEmu
 	prevScrlYEmu = scrlYEmu
-	prevAnimIndex = animIndex
-	scrlEmu = memory.readbyte(0x001F)
+	prevGameState = gameState
+	scrlXEmu = memory.readbyte(0x001F)
 	scrlYEmu = memory.readbyte(0x0022)
+	gameState = memory.readbyte(0x01FE)
 	
-	local xScrlDraw = prevScrlEmu
+	local xScrlDraw = prevScrlXEmu
 	local yScrlDraw = prevScrlYEmu
 	local xPosEmu = memory.readbyte(0x460)
 	local yPosEmu = memory.readbyte(0x4A0)
+	local screenEmu = memory.readbyte(0x0440)
+	
+	if gameState==156 and prevGameState~=156 then
+		scrollStartFrame = emu.framecount()
+	end
+	
+	local scrollDuration = emu.framecount() - scrollStartFrame
+	
+	--Hacky fixup for screen number. Screen transitions set it a bit prematurely.
+	--Boss doors behave slightly differently than regular screen scrolls, because of course they do.
+	--Regular screen scrolls increment the screen number as soon as the scroll commences.
+	--Boss door screen scrolls increment the screen number as soon as the door begins to open, which is
+	--about 1 second before the actual scroll commences.
+	--However, in both cases, this occurs after exactly 33 frames of waiting. So that's what I check for.
+	if gameState==156 and scrollDuration >= 32 and scrollDuration <= 91 then
+		if scrlXEmu==0 and scrlYEmu==0 then --assume boss door for now
+			screenEmu = screenEmu - 1
+		elseif scrlXEmu~=0 and xPosEmu>200 then --scrolling horizontally for sure
+			screenEmu = screenEmu - 1
+		end
+		--if y scroll nonzero and..........
+	end
 	
 	ghostIndex = emu.framecount() - startFrame
 	
@@ -171,11 +207,14 @@ local function update()
 		print("Ghost finished playing on frame "..emu.framecount()..".")
 	end
 	
+	--gui.text(5,10,string.format("you:   %d:%d; state=%d, scrl=%d",screenEmu,xPosEmu,gameState,scrlEmu))
+	
 	local data = readData()
 	if not data then return end --this frame is out of range of the ghost
 	
 	local xPos = data.xPos
 	local yPos = data.yPos
+	local screen = data.screen
 	
 	local offsetX, offsetY, img = anm.update(data)
 	
@@ -197,8 +236,19 @@ local function update()
 		return
 	end
 	
+	
 	local drawX    = math.ceil(AND(xPos+255-xScrlDraw,255)) + offsetX + screenOffsetX
-	--local drawXEmu = math.ceil(AND(xPosEmu+255-xScrlDraw,255)) + offsetX + screenOffsetX --might be useful for wrap prevention
+	local drawXEmu = math.ceil(AND(xPosEmu+255-xScrlDraw,255)) + offsetX + screenOffsetX
+	
+	--gui.text(5,20,string.format("ghost: %d:%d",screen,drawX))
+	
+	--wrapping check.
+	--This isn't quite sufficient on its own. Screen scrolls set the screen number a bit prematurely,
+	--so the above logic that fixes it up is necessary.
+	--similar logic for Y scrolling should also work.
+	if drawX-drawXEmu ~= (screen*256+xPos) - (screenEmu*256+xPosEmu) then
+		return
+	end
 	
 	--Y position wrapping.
 	--For X I can use cool bitwise shit (stolen from mm2_minimap.lua), but wrapping by multiples of 240

@@ -81,6 +81,7 @@ local climb = readGD("mmframes/climb.gd")
 	Maps the animation indexes to image files. Each index is a table containing one or more frames of animation.
 	These correspond to 0x400 in RAM, and are stored RLE compressed in ghost files.
 	frame format: gd image, x offset, y offset, duration. Duration of 0 or nil means forever, i.e. a non-looping animation.
+	See animIndex.txt for a concise list of what each index represents.
 ]]
 local anim = {}
 anim[0x00] = {{readGD("mmframes/standing.gd"),0,0,91}, {readGD("mmframes/blinking.gd"),4,0,9}}
