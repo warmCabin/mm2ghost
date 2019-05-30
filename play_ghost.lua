@@ -52,9 +52,15 @@ local screenOffsetY = -11 --If your emulator behaves differently than mine,
                           --you may need to change them.	  
 	
 local showGhost = true
+local checkWrap = true
 local startFrame = emu.framecount() + 2 --offset to line up ghost draws with NES draws.
 local frameCount = 0
 local prevFrameCount = 0
+
+if version<2 then
+	print("This ghost does not contain screen information. Screen wrapping enabled.")
+	checkWrap = false
+end
 
 local ghostData = {}
 
@@ -136,7 +142,9 @@ local scrlYEmu = 0
 local prevGameState = 0
 local gameState = 0
 local scrollStartFrame = 0
+local scrollingUp = false
 local weapon = 0
+local prevSelect = false
 
 --[[
 	This function is simple enough that it seems like it should be inline.
@@ -185,20 +193,28 @@ local function update()
 	end
 	
 	local scrollDuration = emu.framecount() - scrollStartFrame
+	scrollingUp = scrlYEmu<prevScrlYEmu
+	
+	--gui.text(5,30,string.format("%s (%d)",scrollingUp and "up scroll" or "down scroll",scrollDuration))
 	
 	--Hacky fixup for screen number. Screen transitions set it a bit prematurely.
-	--Boss doors behave slightly differently than regular screen scrolls, because of course they do.
-	--Regular screen scrolls increment the screen number as soon as the scroll commences.
-	--Boss door screen scrolls increment the screen number as soon as the door begins to open, which is
+	--Boss doors behave slightly differently than regular horizontal scrolls, because of course they do.
+	--Regular horizontal scrolls increment the screen number as soon as the scroll commences.
+	--Boss door scrolls increment the screen number as soon as the door begins to open, which is
 	--about 1 second before the actual scroll commences.
-	--However, in both cases, this occurs after exactly 33 frames of waiting. So that's what I check for.
+	--However, in both cases, this occurs after exactly 33 frames of waiting, so that's what I check for.
+	--Downwards scrolling needs a similar fixup, but upwards does not.
 	if gameState==156 and scrollDuration >= 32 and scrollDuration <= 91 then
 		if scrlXEmu==0 and scrlYEmu==0 then --assume boss door for now
 			screenEmu = screenEmu - 1
 		elseif scrlXEmu~=0 and xPosEmu>200 then --scrolling horizontally for sure
 			screenEmu = screenEmu - 1
+		elseif scrlYEmu~=0 then
+			yPosEmu = yPosEmu + scrlYEmu
+			if not scrollingUp and yPosEmu>200 then
+				screenEmu = screenEmu-1
+			end
 		end
-		--if y scroll nonzero and..........
 	end
 	
 	ghostIndex = emu.framecount() - startFrame
@@ -207,7 +223,7 @@ local function update()
 		print("Ghost finished playing on frame "..emu.framecount()..".")
 	end
 	
-	--gui.text(5,10,string.format("you:   %d:%d; state=%d, scrl=%d",screenEmu,xPosEmu,gameState,scrlEmu))
+	--gui.text(5,10,string.format("you:   %d:%d; state=%d, scrl=%d",screenEmu,yPosEmu,gameState,scrlYEmu))
 	
 	local data = readData()
 	if not data then return end --this frame is out of range of the ghost
@@ -242,42 +258,48 @@ local function update()
 	
 	--gui.text(5,20,string.format("ghost: %d:%d",screen,drawX))
 	
-	--wrapping check.
-	--This isn't quite sufficient on its own. Screen scrolls set the screen number a bit prematurely,
-	--so the above logic that fixes it up is necessary.
-	--similar logic for Y scrolling should also work.
-	if drawX-drawXEmu ~= (screen*256+xPos) - (screenEmu*256+xPosEmu) then
-		return
-	end
-	
-	--Y position wrapping.
+	--Y position wrapping (to make sure drawY is on-screen).
 	--For X I can use cool bitwise shit (stolen from mm2_minimap.lua), but wrapping by multiples of 240
 	--isn't quite so elegant.
 	local drawY = yPos - yScrlDraw
+	local drawYEmu = yPosEmu - yScrlDraw
 	--gui.text(0,10,"drawY: "..drawY)
 	--gui.text(0,30,"yScrlDraw: "..yScrlDraw)
 	--gui.text(0,40,"yPos: "..yPos)
-	if drawY<0 then
+	if drawY<0 then --need to detect when drawY goes "negative." Signed reads aren't appropriate because drawY can be >=128...
 		drawY = drawY + 240
 	end
 	--elseif drawY > 240 then
 	--	drawY = drawY - 240
 	--end
-	--gui.text(0,20,"drawY after: "..drawY)
+	--gui.text(5,40,"drawY after: "..drawY)
 	drawY = drawY + offsetY + screenOffsetY
+	drawYEmu = drawYEmu + offsetY + screenOffsetY
 	--FIXME: Y position is signed...sort of. When Mega Man jumps off the top of the screen, it goes negative...i.e., Y=255
 	--But, readByteSigned is not a valid choice here, because Y >= 128 can also signify halfway down the screen...what to do???
 	
-	--[[
-	--simple check for screen wrap behavior. It doesn't work at all.
-	--At each screen border, Mega Man's world position wraps around to 0 but he is still further
-	--to the right than any ghosts on the previous screen. And that's just for horizontal scrolling!
-	--With vertical scrolling, the next screen could be above OR below you, so it's hard to detect a proper wrap.
-	--I need to store screen numbers in the ghost file.
-	if curXPos>xPos and drawXCur<drawX then
-		gui.text(10,10,"You're killing it!")
-		return
-	end ]]
+	--Wrapping checks (to make sure ghosts don't draw when they're too far away).
+	--These aren't quite sufficient on their own. Screen scrolls set the screen number a bit prematurely,
+	--so the above logic that fixes it up is necessary.
+	--Wrapping is further complicated by the fact that there is no such thing as up, down, left, and right rooms in Mega Man 2;
+	--only PREVIOUS and NEXT. The screen and X/Y coordinates are therefore not sufficient to compute the relative inter-screen
+	--position of Mega Man and a ghost. We can monitor the scroll values to determine what's really happening.
+	if checkWrap then
+		if scrlYEmu==0 then --horizontal transition or large contiguous room
+			if drawX-drawXEmu ~= (screen*256+xPos) - (screenEmu*256+xPosEmu) then
+				return
+			end
+		elseif scrollingUp then
+			--FIXME: there's a 1-frame fuckup in this case. It's because drawY uses the previous frame scroll value.
+			if drawY-drawYEmu ~= (-screen*240+yPos) - (-screenEmu*240+yPosEmu) then
+				return
+			end
+		else --scrolling down
+			if drawY-drawYEmu ~= (screen*240+yPos) - (screenEmu*240+yPosEmu) then
+				return
+			end
+		end
+	end
 	
 	if showGhost then gui.image(drawX,drawY,img,0.7) end
 	
