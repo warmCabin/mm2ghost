@@ -1,56 +1,12 @@
-
---[[
-	Animation index is at 0x400.
-	00 - standing still
-	01 - stand n' shoot
-	03 - stand n' throw
-	04 - tiptoe 1
-	05 - stand n' shoot
-	08 - running
-	09 - run n' shoot
-	0B - also stand n' throw?
-	0C - falling
-	0D - jump n' shoot (Most weapons)
-	0F - jump n' throw (Items, Metal Blade, Time Stopper)
-	10 - tiptoe 2
-	11 - tiptoe n' shoot
-	13 - also stand n' throw????
-	14 - running? or not??
-	15 - run n' shoot, animate to stand n' shoot (why?)
-	17 - also stand n' throw?????????????
-	18 - knockback
-	1A - teleport in
-	1B - ladder climb
-	1C - climb n' shoot
-	1E - climb n' throw
-	1F - ladder top (ass)
-	20 - ass n' shoot?
-	26 - teleport out
-	
-	0x0042 seems to indicate facing, in an abstract gameplay sort of way.
-	40 = right, 0 = left.
-]]
-
 --[[
 
-	Each frame in a ghost file is 5 bytes:
-	xPos yPos xScrl animIndex flags
+	Records a v2 ghost file as you play. See format specs v2.txt for the specifics. Or infer them from my code ;)
+	You can provide a path to the desired recording location as an argument (in the Arguments box). If you don't, the script will
+	generate a filename based on the time and date by default.
 	
-	flags:
-	7654 3210
-	---- --WF
-	|||| ||||
-    |||| |||+- Flipped: Whether Mega Man's sprite is flipped (facing right). Updates every frame.
-	|||| ||+-- Weapon: Set when the currently equipped weapon changes. When this bit is 1,
-	|||| ||    the following byte will be the index of the new weapon, on the range [0,12].
-	++++-++--- Unused. Set to 0.
-			   
-	TODO: Should animIndex be an extra flag/byte? It doesn't change THAT often.
-	
-	If multiple "extra byte" bits are active, their corresponding extra bytes will appear in order from least to most
-	significant bit. i.e., Weapon, then Animation.
 	
 	TODO: prompt for "This file already exists." (gui.popup)
+		  Alternatively, MAKE A PROPER FUCKING FILE SELECTOR GUI.
 	
 	TODO: Can't create new directories?
 
@@ -61,7 +17,8 @@ local rshift,band = bit.rshift, bit.band
 
 local function writeNumBE(file,val,len)
 	for i=len-1,0,-1 do
-		file:write(string.char(band(rshift(val,i*8),0xFF)))
+		file:write(string.char(band(rshift(val,i*8),0xFF))) --Lua makes binary file I/O such a pain.
+		--file.write( (val>>(i<<3)) & 0xFF ) --how things could be. How they SHOULD be.
 	end
 end
 
@@ -100,19 +57,19 @@ local flipped = true
 local prevWeapon = 0
 local prevAnimIndex = 0xFF
 local prevScreen = -1
-local len = 0
+local len = 0 --I guess this is a Lua keyword. Oh well!
 
-PLAYING = 178
-BOSS_RUSH = 100
-LAGGING = 149
-LAGGING2 = 171 --???
-HEALTH_REFILL = 119
-PAUSED = 128
-DEAD = 156 --also scrolling/waiting
-MENU = 197
-READY = 82
-BOSS_KILL = 143
-DOUBLE_DEATH = 134 --it's a different gamestate somehow!!
+local PLAYING = 178
+local BOSS_RUSH = 100
+local LAGGING = 149
+local LAGGING2 = 171 --???
+local HEALTH_REFILL = 119
+local PAUSED = 128
+local DEAD = 156 --also scrolling/waiting
+local MENU = 197
+local READY = 82
+local BOSS_KILL = 143
+local DOUBLE_DEATH = 134 --It's a different gamestate somehow!!
 
 local validStates = {PLAYING, BOSS_RUSH, LAGGING, HEALTH_REFILL, MENU, BOSS_KILL, LAGGING2, DOUBLE_DEATH}
 
@@ -126,7 +83,7 @@ end
 
 --[[
 	Detects if Mega Man is flipped by scanning OAM for his face sprite.
-	There's some sort of flag at 0x0042 that seems to store this data...but I don't trust it.
+	There's some sort of flag at 0x0042 that seems to store this data, but I don't trust it.
 	This OAM approach fails when Mega Man is:
 		- climbing a ladder (and not shooting)
 		- in the "splat" frame of his knockback animation
@@ -208,14 +165,14 @@ local function main()
 end
 emu.registerafter(main)
 
+--Gets called when the script is closed/stopped.
 local function cleanup()
 
 	print("Finishsed recording on frame "..emu.framecount()..".")
 	print("Ghost is "..len.." frames long.")
-	ghost:seek("set",0x06)
+	ghost:seek("set",0x06) --Length was unknown until this point. Go back and save it.
 	writeNumBE(ghost,len,4)
 	ghost:close()
 
 end
 emu.registerexit(cleanup)
-
