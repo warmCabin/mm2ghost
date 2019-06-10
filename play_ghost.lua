@@ -1,3 +1,15 @@
+--[[
+
+	Plays back a ghost file relative to the frame you click Run.
+	You can load a savestate and the ghost will travel through time with you; it's all based
+	on the frame count.
+	You must specify which ghost file to run in the Arguments box.
+	
+	This script proivdes a button in TASEditor labelled "Show/Hide Ghost." When a ghost is hidden,
+	all calculations are still carried out, but it is not drawn. The primary intended use of this
+	button is for cleaning up AVI recordings.
+
+]]
 
 local bit = require("bit")
 local anm = require("animation")
@@ -52,6 +64,7 @@ local screenOffsetY = -11 --If your emulator behaves differently than mine,
                           --you may need to change them.	  
 	
 local showGhost = true
+local retroMode = false
 local checkWrap = true
 local startFrame = emu.framecount() + 2 --offset to line up ghost draws with NES draws.
 local frameCount = 0
@@ -70,6 +83,9 @@ local ghostData = {}
 	animIndex was last changed. It's a space/time tradeoff.
 	Maybe I could do some kind of keyframe array or something.
 	Perhaps a nifty data metatable could be used to some effect as well.
+	
+	This function can properly parse v0-v2 ghost files. Anything below v2 is considered deprcated, because this
+	function is already getting pretty messy!
 ]]
 local function init()
 	
@@ -133,6 +149,8 @@ print()
 		It should contain:
 		Ghost directory, so user only specifies the name.
 		screen offset X and Y
+		"retro" (flickery) mode
+		Enable wrapping
 ]]
 
 local prevScrlEmu = 0
@@ -285,12 +303,12 @@ local function update()
 	--only PREVIOUS and NEXT. The screen and X/Y coordinates are therefore not sufficient to compute the relative inter-screen
 	--position of Mega Man and a ghost. We can monitor the scroll values to determine what's really happening.
 	if checkWrap then
-		if scrlYEmu==0 then --horizontal transition or large contiguous room
+		if scrlYEmu==0 then --horizontal transition, large contiguous room, or not scrolling.
 			if drawX-drawXEmu ~= (screen*256+xPos) - (screenEmu*256+xPosEmu) then
 				return
 			end
 		elseif scrollingUp then
-			--FIXME: there's a 1-frame fuckup in this case. It's because drawY uses the previous frame scroll value.
+			--FIXME: there's a 1-frame fuckup in this case. It's because drawY uses the previous frame's scroll value.
 			if drawY-drawYEmu ~= (-screen*240+yPos) - (-screenEmu*240+yPosEmu) then
 				return
 			end
@@ -301,12 +319,15 @@ local function update()
 		end
 	end
 	
-	if showGhost then gui.image(drawX,drawY,img,0.7) end
-	
-	--retro style
-	--[[if emu.framecount()%2==0 then
-		gui.image(drawX,drawY,img,1.0)
-	end--]]
+	if showGhost then
+		if retroMode then --Create a retro-style flicker transparency!
+			if emu.framecount()%3~=0 then
+				gui.image(drawX,drawY,img,1.0)
+			end
+		else --Use standard alpha blending or whatever.
+			gui.image(drawX,drawY,img,0.7)
+		end
+	end
 
 end
 
