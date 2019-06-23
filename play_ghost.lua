@@ -13,6 +13,19 @@
 
 local bit = require("bit")
 local anm = require("animation")
+local cfg = {}
+if not pcall(function()cfg = require("config")end) then
+	print("Error loading configuration file! Reverting to default settings.")
+	print("Are all the values separated by commas?")
+	print()
+end
+
+setmetatable(cfg,{__index={ --the defaults, all wrapped up in Lua meta-magic.
+	xOffset = -14,
+	yOffset = -11,
+	retro = false,
+	checkWrapping = true
+}})
 
 --Read number Big-endian
 local function readNumBE(file,length)
@@ -59,13 +72,13 @@ assert(version<=2, "\nThis ghost was created with a newer version of mm2ghost.\n
 local ghostLen = readNumBE(ghost,4)
 local ghostIndex = 0 --keeps track of how many frames have actually been drawn
 
-local screenOffsetX = -14 --offset all drawing by these values.
-local screenOffsetY = -11 --If your emulator behaves differently than mine,
-                          --you may need to change them.	  
+local screenOffsetX = cfg.xOffset --offset all drawing by these values.
+local screenOffsetY = cfg.yOffset --If your emulator behaves differently than mine,
+								  --you may need to change them in the config file.
 	
 local showGhost = true
-local retroMode = false
-local checkWrap = true
+local retroMode = cfg.retro
+local checkWrap = cfg.checkWrapping
 local startFrame = emu.framecount() + 2 --offset to line up ghost draws with NES draws.
 local frameCount = 0
 local prevFrameCount = 0
@@ -321,8 +334,8 @@ local function update()
 	
 	if showGhost then
 		if retroMode then --Create a retro-style flicker transparency!
-			if emu.framecount()%3~=0 then
-				gui.image(drawX,drawY,img,1.0)
+			if emu.framecount()%3~=0 then      --2 on, 1 off. This creates a pseudo-transparency of 0.67, which is close enough
+				gui.image(drawX,drawY,img,1.0) --to the 0.7 value used below.
 			end
 		else --Use standard alpha blending or whatever.
 			gui.image(drawX,drawY,img,0.7)
