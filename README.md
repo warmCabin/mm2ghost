@@ -96,6 +96,22 @@ Simply hide the ghost one frame before the bothersome section, and re-enable it 
 I personally like to let my ghosts run across the pause screen; I hide them whenever the screen fades to black.
 
 
+## Configuration (config.lua)
+
+config.lua is a Lua source file, which can be opened with your favorite text editor. It allows you to adjust drawing offsets and enable some behaviors such as "retro mode;" these options are summarized in the table below.
+
+|Name         |Description|
+|-------------|---|  
+|xOffset      |Offset all ghost draws by this many pixels horizontally|  
+|yOffset      |Offset all ghost draws by this many pixels veritcally|  
+|retro        |Enable "retro mode," an old-school flickery effect, as an alternative to plain transparency|
+|checkWrapping|Enable wrapping checks. You may find it useful to disable this for certain zip scenarios.|
+
+Make sure to leave the formatting intact! In particular, each value needs an equals sign and there should be a comma after every value except the last.
+
+mm2ghost will resort to a set of defaults if any option is missing, or the file itself is missing or malformed.
+
+
 ## Tips for Capturing a Good Ghost
 
 A good comparison needs a common starting point. I recommend choosing the [one frame of garbage](https://cdn.discordapp.com/attachments/404188813359972352/552398101973958686/Rockman_2_-_Dr._Wily_no_Nazo_Japan-132.png) that can be seen as each
@@ -116,6 +132,6 @@ Using zips and full items, you could possibly complete some stages faster than t
 ## Known Bugs
 
 - Occasional one-frame glitches when scrolling vertically
-- Running & climbing animations desync
-- Ghosts may have an incorrect X position for 1 frame when loading savestates
-- Ghosts will jitter when above the screen border (negative Y position) while you are scrolling. What an edge case!
+- Running & climbing animations desync from the proper in-game behavior
+- Ghosts may have an incorrect position for 1 frame when loading savestates
+- Negative Y is indistinguishable from high positive Y, leading to some tricky-to-fix wrapping
