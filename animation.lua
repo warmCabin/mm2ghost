@@ -81,6 +81,7 @@ local climb = readGD("mmframes/climb.gd")
 	Maps the animation indexes to image files. Each index is a table containing one or more frames of animation.
 	These correspond to 0x400 in RAM, and are stored RLE compressed in ghost files.
 	frame format: gd image, x offset, y offset, duration. Duration of 0 or nil means forever, i.e. a non-looping animation.
+	See animIndex.txt for a concise list of what each index represents.
 ]]
 local anim = {}
 anim[0x00] = {{readGD("mmframes/standing.gd"),0,0,91}, {readGD("mmframes/blinking.gd"),4,0,9}}
@@ -164,7 +165,7 @@ palettes[0]  = {{r=0,g=0,b=0},{r=0,g=112,b=236},{r=0,g=232,b=216}}     --P
 palettes[1]  = {{r=0,g=0,b=0},{r=228,g=0,b=88},{r=240,g=188,b=60}}     --H
 palettes[2]  = {{r=0,g=0,b=0},{r=0,g=112,b=236},{r=252,g=252,b=252}}   --A
 palettes[3]  = {{r=0,g=0,b=0},{r=0,g=148,b=0},{r=252,g=252,b=252}}     --W
-palettes[4]  = {{r=0,g=0,b=0},{r=0,g=112,b=236},{r=252,g=252,b=252}}   --B
+palettes[4]  = {{r=0,g=0,b=0},{r=116,g=116,b=116},{r=252,g=252,b=252}} --B
 palettes[5]  = {{r=0,g=0,b=0},{r=252,g=116,b=180},{r=252,g=196,b=252}} --Q
 palettes[6]  = {{r=0,g=0,b=0},{r=188,g=0,b=188},{r=252,g=196,b=252}}   --F
 palettes[7]  = {{r=0,g=0,b=0},{r=136,g=112,b=0},{r=252,g=216,b=168}}   --M

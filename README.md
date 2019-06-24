@@ -68,7 +68,7 @@ To play a ghost:
   4. Click "Run"
   5. Watch him go!
   
-Unlike recording a ghost, playing a ghost is fully compatible with savestates. Simply load a state and the ghost will travel through time with you.
+Unlike recording a ghost, playing a ghost is **fully compatible** with savestates. Simply load a state and the ghost will travel through time with you.
 
 
 ## Recording an AVI
@@ -78,20 +78,38 @@ To record an AVI:
   2. Frame advance at least once. Due to a bug in FCEUX, you *must* do this.\*
   3. Click File -> AVI -> Record AVI...
   4. Specify whatever compression settings and save destination you like 
-
-If the screen wrap bug bothers you, you can edit it out using TASEditor. It's a tedious process, but doable.  
-play_ghost.lua provides a manual button in the TASEditor interface labelled "Show/Hide Ghost". When clicked, it toggles the current
-ghost's visibility. Hidden ghosts advance their position and animation state, but are not drawn to the screen. I created this feature
-solely for this tedious task!  
-As the ghost plays, record the frame numbers where Mega Man leaves and re-enters the screen. Then, when playing back the ghost
-and recording an AVI, click the "Show/Hide Ghost" button in TASEditor one frame BEFORE all the numbers you recorded. For example,
-if Mega Man disappeared on frame 100, reappeared on frame 150, and disappeared again on frame 248, you'd click Show/Hide Ghost on
-frames 99, 149, and 247.  
-This is a lame workaround, and I know it. I'm working on fixing the screen wrap behavior; I may add programmatic support to the process
-above if screen wrapping cannot be fixed.  
+  5. Let the emulator run for the entire segment you wish to capture (using a movie is highly recommended)
+  6. Click File -> AVI -> Stop AVI
+  
+You **cannot** safely use turbo during this process; the AVI will become garbled.
 
 \*Lua scripts don't get run until the next frame advance. I believe FCEUX closes all other file pointers or something when you start recording an AVI, but I genuinely have no idea. This is a bug that I am aware of and cannot fix, at least not without forking FCEUX and digging into what is probably a really boring section of its code...  
 Alternatively, you can click Record AVI *before* running the script.
+
+
+### Hiding a Ghost
+
+I've done my best to make sure ghosts don't draw when they're not supposed to, but the behavior isn't perfect. In particular, ghosts are drawn over the pause and menu screens, and there may be one-frame glitches when scrolling vertically.  
+If this behavior bothers you, you can remove it by *hiding* the ghost using TASEditor; mm2ghost provides a TASEditor button labelled "Show/Hide Ghost" for this purpose. When a ghost is hidden, all calulcations are performed as normal, but the ghost is not drawn.  
+Simply hide the ghost one frame before the bothersome section, and re-enable it one frame before it behaves correctly again. You may want to write down the relevant frame numbers and then replay the ghost.
+
+I personally like to let my ghosts run across the pause screen; I hide them whenever the screen fades to black.
+
+
+## Configuration (config.lua)
+
+config.lua is a Lua source file, which can be opened with your favorite text editor. It allows you to adjust drawing offsets and enable some behaviors such as "retro mode;" these options are summarized in the table below.
+
+|Name         |Description|
+|-------------|---|  
+|xOffset      |Offset all ghost draws by this many pixels horizontally|  
+|yOffset      |Offset all ghost draws by this many pixels veritcally|  
+|retro        |Enable "retro mode," an old-school flickery effect, as an alternative to plain transparency|
+|checkWrapping|Enable wrapping checks. You may find it useful to disable this for certain zip scenarios.|
+
+Make sure to leave the formatting intact! In particular, each value needs an equals sign and there should be a comma after every value except the last.
+
+mm2ghost will resort to a set of defaults if any option is missing, or the file itself is missing or malformed.
 
 
 ## Tips for Capturing a Good Ghost
@@ -113,7 +131,7 @@ Using zips and full items, you could possibly complete some stages faster than t
 
 ## Known Bugs
 
-- Mega Man wraps around when he gets too far ahead or behind
-- Running & climbing animations desync
-- Ghosts may have an incorrect X position for 1 frame when loading savestates
-- Ghosts will jitter when above the screen border (negative Y position) while you are scrolling. What an edge case!
+- Occasional one-frame glitches when scrolling vertically
+- Running & climbing animations desync from the proper in-game behavior
+- Ghosts may have an incorrect position for 1 frame when loading savestates
+- Negative Y is indistinguishable from high positive Y, leading to some tricky-to-fix wrapping
