@@ -2,7 +2,7 @@
 ghost plans.txt
 ghost readme.txt
 ghosts/*.ghost
-ghosts/v2
+ghosts/old
 play_ghost_delaytest.lua
 record_ghost_old.lua
 v0ifier.lua
