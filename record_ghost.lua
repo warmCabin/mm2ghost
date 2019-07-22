@@ -50,7 +50,7 @@ local ghost = io.open(path,"wb")
 assert(ghost,"Could not open \""..path.."\"")
 
 print("Writing to \""..path.."\"...")
-ghost:write("mm2g\0\2\0\0\0\0") --signature + 2 byte version + 4 byte length. Length will be written later.
+ghost:write("mm2g\0\3\0\0\0\0") --signature + 2 byte version + 4 byte length. Length will be written later.
 
 local gameState = 0
 local flipped = true
@@ -63,6 +63,7 @@ local PLAYING = 178
 local BOSS_RUSH = 100
 local LAGGING = 149
 local LAGGING2 = 171 --???
+local LAGGING3 = 93  --lagging during boss rush????
 local HEALTH_REFILL = 119
 local PAUSED = 128
 local DEAD = 156 --also scrolling/waiting
@@ -70,13 +71,22 @@ local MENU = 197
 local READY = 82
 local BOSS_KILL = 143
 local DOUBLE_DEATH = 134 --It's a different gamestate somehow!!
+local DOUBLE_DEATH2 = 146 --???
+local WILY_KILL = 65 --basically BOSS_KILL
 
-local validStates = {PLAYING, BOSS_RUSH, LAGGING, HEALTH_REFILL, MENU, BOSS_KILL, LAGGING2, DOUBLE_DEATH}
+local validStates = {PLAYING, BOSS_RUSH, LAGGING, HEALTH_REFILL, MENU, BOSS_KILL, LAGGING2, DOUBLE_DEATH, DOUBLE_DEATH2, WILY_KILL, LAGGING3}
+local climbAnims  = {0x1B, 0x1C, 0x1E}
 
-local function validState()
-	gameState = memory.readbyte(0x01FE)
+local function validState(gameState)
 	for _,state in ipairs(validStates) do
 		if state==gameState then return true end
+	end
+	return false
+end
+
+local function isClimbing()
+	for _,anim in ipairs(climbAnims) do
+		if anim==animIndex then return true end
 	end
 	return false
 end
@@ -105,23 +115,32 @@ local function isFlipped()
 	
 end
 
-local function main()
+local function getAnimIndex()
+	
+	if memory.readbyte(0x00F9)~=0 or not validState(gameState) then --F9 stores an off-screen flag
+		return 0xFF
+	else
+		return memory.readbyte(0x0400)
+	end
+	
+end
+
+local function main() --TODO: flag to freeze the animation timer (stationary climbing & health refill)
 
 	len = len + 1
+	gameState = memory.readbyte(0x01FE)
 
 	local xPos = memory.readbyte(0x460)
 	local yPos = memory.readbyte(0x4A0)
-	local animIndex = memory.readbyte(0x0400)
+	local vySub = memory.readbyte(0x0660)
+	local animIndex = getAnimIndex()
 	local weapon = memory.readbyte(0x00A9)
 	local screen = memory.readbyte(0x0440)
 	flipped = isFlipped()
 	
+	--TODO: Is this constant writing bad? Does Lua automatically buffer file I/O?
 	ghost:write(string.char(xPos))
 	ghost:write(string.char(yPos))
-	
-	if not validState() then
-		animIndex = 0xFF
-	end
 	
 	local flags = 0
 	
@@ -140,6 +159,10 @@ local function main()
 	
 	if screen ~= prevScreen then
 		flags = OR(flags,8)
+	end
+	
+	if gameState==HEALTH_REFILL or isClimbing() and vySub==0 then
+		flags = OR(flags,16)
 	end
 	
 	ghost:write(string.char(flags))

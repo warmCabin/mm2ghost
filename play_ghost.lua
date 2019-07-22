@@ -67,7 +67,7 @@ assert(ghost, string.format("\nCould not open ghost file \"%s\"",path))
 assert(ghost:read(4)=="mm2g", "\nInvalid or corrupt ghost file (missing signature).")
 
 local version = readNumBE(ghost,2)
-assert(version<=2, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version.")
+assert(version<=3, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version.")
 
 local ghostLen = readNumBE(ghost,4)
 local ghostIndex = 0 --keeps track of how many frames have actually been drawn
@@ -118,29 +118,36 @@ local function init()
 		if version==0 then
 			data.animIndex = readByte(ghost) --animIndex was stored for every frame in version 0
 		end
+		
 		local flags = readByte(ghost)
 		
-		data.flipped = AND(flags,1)~=0
+		if AND(flags,1)~=0 then
+			data.flipped = true
+		end
 		
-		if AND(flags,2)~=0 then
+		if AND(flags,2)~=0 then --weapon change flag
 			data.weapon = readByte(ghost)
 			curWeapon = data.weapon
 		else
 			data.weapon = curWeapon
 		end
 		
-		if AND(flags,4)~=0 then
+		if AND(flags,4)~=0 then --animation index change flag
 			data.animIndex = readByte(ghost)
 			curAnimIndex = data.animIndex
 		else
 			data.animIndex = data.animIndex or curAnimIndex
 		end
 		
-		if AND(flags,8)~=0 then
+		if AND(flags,8)~=0 then --screen change flag
 			data.screen = readByte(ghost)
 			curScreen = data.screen
 		else
 			data.screen = curScreen --curScreen will stay at nil in versions before 2
+		end
+		
+		if AND(flags,16)~=0 then --animation timer freeze flag
+			data.halt = true
 		end
 		
 		ghostData[startFrame+i-1] = data
@@ -198,6 +205,12 @@ local function readData()
 	
 end
 
+--[[
+	In preparation for the multighost update:
+		- much of this should stay in a general update function
+		- much of this can go in an individual ghost update function. Might be tricky with all these pesky local variables.
+		- can specify multiple ghosts by separating paths w/ semicolon
+]]
 local function update()
 
 	--It seems scroll is use-then-set, while position is set-then-use, if that makes sense.
