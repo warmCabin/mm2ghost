@@ -11,10 +11,14 @@
 
 ]]
 
+-- TODO: make ghost wrap calculations be based on drawScreen (0x20).
+
 local bit = require("bit")
 local anm = require("animation")
 local cfg = {}
-if not pcall(function()cfg = require("config")end) then
+if not pcall(function() --janky Lua try/catch
+    cfg = require("config")
+end) then
 	print("Error loading configuration file! Reverting to default settings.")
 	print("Are all the values separated by commas?")
 	print()
@@ -82,6 +86,7 @@ local checkWrap = cfg.checkWrapping
 local startFrame = emu.framecount() + 2 --offset to line up ghost draws with NES draws.
 local frameCount = 0
 local prevFrameCount = 0
+local ghostAlpha = 0.7 --Could go in config!
 
 if version<2 then
 	print("This ghost does not contain screen information. Screen wrapping enabled.")
@@ -173,6 +178,9 @@ print()
 		Enable wrapping
 ]]
 
+local screenEmu = 0
+local drawScreenEmu = 0
+local prevDrawScreenEmu = 0
 local prevScrlEmu = 0
 local scrlEmu = 0
 local prevScrlYEmu = 0
@@ -205,6 +213,36 @@ local function readData()
 	
 end
 
+-- Wrapping checks (to make sure ghosts don't draw when they're too far away).
+-- These aren't quite sufficient on their own. Screen scrolls set the screen number a bit prematurely,
+-- so the logic in update() that fixes it up is necessary.
+-- Wrapping is further complicated by the fact that there is no such thing as up, down, left, and right rooms in Mega Man 2;
+-- only PREVIOUS and NEXT. The screen and X/Y coordinates are therefore not sufficient to compute the relative inter-screen
+-- position of Mega Man and a ghost. We can monitor the scroll values to determine what's really happening.
+local function proximityCheck(data)
+	return false
+end
+
+local function drawScreenCheck(data)
+    -- if true then return false end
+    local x = (data.screen - prevDrawScreenEmu)*256 + data.xPos - prevScrlXEmu
+    gui.text(5, 30, string.format("scroll: %d", prevScrlXEmu))
+    gui.text(5, 40, string.format("ghostly x: %d", x))
+    gui.text(5, 50, string.format("ghostly screen #: %d", data.screen))
+    gui.text(5, 60, string.format("ghostly actual x: %d", data.xPos))
+    if x >= 0 and x < 256 then
+        return true
+    end
+end
+
+local function shouldDraw(data)
+
+    if not checkWrap then return true end
+    
+    return proximityCheck(data) or drawScreenCheck(data)
+
+end
+
 --[[
 	In preparation for the multighost update:
 		- much of this should stay in a general update function
@@ -221,6 +259,9 @@ local function update()
 	
 	prevScrlXEmu = scrlXEmu
 	prevScrlYEmu = scrlYEmu
+    screenEmu = memory.readbyte(0x0440)
+    prevDrawScreenEmu = drawScreenEmu
+    drawScreenEmu = memory.readbyte(0x20)
 	prevGameState = gameState
 	scrlXEmu = memory.readbyte(0x001F)
 	scrlYEmu = memory.readbyte(0x0022)
@@ -230,7 +271,6 @@ local function update()
 	local yScrlDraw = prevScrlYEmu
 	local xPosEmu = memory.readbyte(0x460)
 	local yPosEmu = memory.readbyte(0x4A0)
-	local screenEmu = memory.readbyte(0x0440)
 	
 	if gameState==156 and prevGameState~=156 then
 		scrollStartFrame = emu.framecount()
@@ -322,13 +362,10 @@ local function update()
 	--FIXME: Y position is signed...sort of. When Mega Man jumps off the top of the screen, it goes negative...i.e., Y=255
 	--But, readByteSigned is not a valid choice here, because Y >= 128 can also signify halfway down the screen...what to do???
 	
-	--Wrapping checks (to make sure ghosts don't draw when they're too far away).
-	--These aren't quite sufficient on their own. Screen scrolls set the screen number a bit prematurely,
-	--so the above logic that fixes it up is necessary.
-	--Wrapping is further complicated by the fact that there is no such thing as up, down, left, and right rooms in Mega Man 2;
-	--only PREVIOUS and NEXT. The screen and X/Y coordinates are therefore not sufficient to compute the relative inter-screen
-	--position of Mega Man and a ghost. We can monitor the scroll values to determine what's really happening.
-	if checkWrap then
+	-- if not shouldDraw(data) then return end 
+    
+    -- drawXEmu and drawYEmu are the only things that really need to be passed or split off
+    if checkWrap and not shouldDraw(data) then
 		if scrlYEmu==0 then --horizontal transition, large contiguous room, or not scrolling.
 			if drawX-drawXEmu ~= (screen*256+xPos) - (screenEmu*256+xPosEmu) then
 				return
@@ -351,7 +388,7 @@ local function update()
 				gui.image(drawX,drawY,img,1.0) --to the 0.7 value used below.
 			end
 		else --Use standard alpha blending or whatever.
-			gui.image(drawX,drawY,img,0.7)
+			gui.image(drawX,drawY,img,ghostAlpha)
 		end
 	end
 
