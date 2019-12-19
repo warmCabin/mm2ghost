@@ -32,7 +32,7 @@ setmetatable(cfg, {__index = {
 
 -- Read number Big-endian
 local function readNumBE(file,length)
-    assert(length<=8, "Read operation will overflow.")
+    assert(length <= 8, "Read operation will overflow.")
     local ans = 0
     for i = 1, length do
         ans = ans*256 + file:read(1):byte()
@@ -346,7 +346,7 @@ local function update()
     if not img then
         local animIndex = offsetX -- First return value from anm.update was actually animIndex.
         local msg = offsetY       -- Second return value from anm.update was actually error message.
-        local drawX = math.ceil(AND(xPos+255-xScrlDraw, 255)) + screenOffsetX + 8
+        local drawX = math.ceil(AND(xPos + 255 - xScrlDraw, 255)) + screenOffsetX + 8
         local drawY = yPos + screenOffsetY
         -- local drawY = math.ceil(AND(yPos-curScrlY+255,255)) + screenOffsetY
         gui.box(drawX, drawY, drawX + 24, drawY + 24)
@@ -397,12 +397,12 @@ local function update()
             end
         elseif scrollingUp then
             -- FIXME: there's a 1-frame fuckup in this case. It's because drawY uses the previous frame's scroll value.
-            if drawY-drawYEmu ~= (-screen*240+yPos) - (-screenEmu*240+yPosEmu) then
+            if drawY - drawYEmu ~= (-screen*240 + yPos) - (-screenEmu*240 + yPosEmu) then
                 return
             end
         else
             -- scrolling down
-            if drawY-drawYEmu ~= (screen*240+yPos) - (screenEmu*240+yPosEmu) then
+            if drawY - drawYEmu ~= (screen*240 + yPos) - (screenEmu*240 + yPosEmu) then
                 return
             end
         end
@@ -422,14 +422,12 @@ local function update()
 end
 
 local function main()
-    
     prevFrameCount = frameCount
     frameCount = emu.framecount()
     
     if frameCount ~= prevFrameCount then
         update()
     end
-    
 end
 gui.register(main)
 
