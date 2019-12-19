@@ -1,31 +1,31 @@
 Animation index is at 0x400.
-	00 - standing still
-	01 - stand n' shoot
-	03 - stand n' throw
-	04 - tiptoe 1
-	05 - stand n' shoot
-	08 - running
-	09 - run n' shoot
-	0B - also stand n' throw?
-	0C - falling
-	0D - jump n' shoot (Most weapons)
-	0F - jump n' throw (Items, Metal Blade, Time Stopper)
-	10 - tiptoe 2
-	11 - tiptoe n' shoot
-	13 - also stand n' throw????
-	14 - running? or not??
-	15 - run n' shoot, animate to stand n' shoot (why?)
-	17 - also stand n' throw?????????????
-	18 - knockback
-	19 - knockback moonwalk*
-	1A - teleport in
-	1B - ladder climb
-	1C - climb n' shoot
-	1E - climb n' throw
-	1F - ladder top (ass)
-	20 - ass n' shoot?
-	26 - teleport out
-	
+    00 - standing still
+    01 - stand n' shoot
+    03 - stand n' throw
+    04 - tiptoe 1
+    05 - stand n' shoot
+    08 - running
+    09 - run n' shoot
+    0B - also stand n' throw?
+    0C - falling
+    0D - jump n' shoot (Most weapons)
+    0F - jump n' throw (Items, Metal Blade, Time Stopper)
+    10 - tiptoe 2
+    11 - tiptoe n' shoot
+    13 - also stand n' throw????
+    14 - running? or not??
+    15 - run n' shoot, animate to stand n' shoot (why?)
+    17 - also stand n' throw?????????????
+    18 - knockback
+    19 - knockback moonwalk*
+    1A - teleport in
+    1B - ladder climb
+    1C - climb n' shoot
+    1E - climb n' throw
+    1F - ladder top (ass)
+    20 - ass n' shoot?
+    26 - teleport out
+    
 0x0042 seems to indicate facing, in an abstract gameplay sort of way.
 40 = right, 0 = left.
 
