@@ -195,8 +195,8 @@ local yPosEmu
 local screenEmu = 0
 local drawScreenEmu = 0
 local prevDrawScreenEmu = 0
-local prevScrlEmu = 0
-local scrlEmu = 0
+local prevScrlXEmu = 0
+local scrlXEmu = 0
 local prevScrlYEmu = 0
 local scrlYEmu = 0
 local prevGameState = 0
@@ -227,6 +227,29 @@ local function readData()
     
 end
 
+-- Determines the screen X coordinate from the given world coordinate, based on the current scroll value.
+-- Cool bitwise stuff stolen from mm2_minimap.lua!
+local function getScreenX(xPos)
+    return math.ceil(AND(xPos + 255 - prevScrlXEmu, 255))
+end
+
+-- Determines the screen Y coordinate from the given world coordinate, based on the current scroll value.
+-- Wrapping by multiples of 240 isn't quite so elegant!
+local function getScreenY(yPos)
+    local y = yPos - prevScrlYEmu
+    
+    -- Y position is signed...sort of. When Mega Man jumps off the top of the screen, it goes negative...i.e., Y=255
+    -- But, readByteSigned is not a valid choice here, because Y >= 128 can also signify halfway down the screen...what to do???
+    if y < 0 then
+        y = y + 240
+    end
+    -- elseif drawY > 240 then
+    --   drawY = drawY - 240
+    -- end
+    
+    return y
+end
+
 --[[
     Wrapping checks (to make sure ghosts don't draw when they're too far away).
     These aren't quite sufficient on their own. Screen scrolls set the screen number a bit prematurely,
@@ -236,8 +259,14 @@ end
     position of Mega Man and a ghost. We can monitor the scroll values to determine what's really happening.
 ]]
 
--- TODO: rather than passing all these params, make a pair of getDrawCoord functions?
-local function proximityCheck(data, drawX, drawXEmu, drawY, drawYEmu)
+-- Wrapping check based on proximity of ghost to Mega Man.
+-- It checks if the difference in SCREEN coordinates between the two Mega Men is equal to the difference in WORLD coordinates.
+local function proximityCheck(data)
+
+    local drawX    = getScreenX(data.xPos)
+    local drawXEmu = getScreenX(xPosEmu)
+    local drawY    = getScreenY(data.yPos)
+    local drawYEmu = getScreenY(yPosEmu)
 
     if scrlYEmu == 0 then
         -- horizontal transition, large contiguous room, or not scrolling.
@@ -245,7 +274,7 @@ local function proximityCheck(data, drawX, drawXEmu, drawY, drawYEmu)
             return false
         end
     elseif scrollingUp then
-        -- FIXME: there's a 1-frame fuckup in this case. It's because drawY uses the previous frame's scroll value.
+        -- FIXME: there's a 1-frame fuckup in this case. It's because drawY uses the previous frame's scroll value. Maybe use prevScreenEmu?
         if drawY - drawYEmu ~= (-data.screen*240 + data.yPos) - (-screenEmu*240 + yPosEmu) then
             return false
         end
@@ -271,7 +300,7 @@ local function drawScreenCheck(data)
     end
 end
 
-local function shouldDraw(data, drawX, drawXEmu, drawY, drawYEmu)
+local function shouldDraw(data)
     for _, state in ipairs(INVALID_STATES) do
         if gameState==state then return false end
     end
@@ -280,7 +309,7 @@ local function shouldDraw(data, drawX, drawXEmu, drawY, drawYEmu)
     
     if not checkWrap then return true end
     
-    return proximityCheck(data, drawX, drawXEmu, drawY, drawYEmu) or drawScreenCheck(data)
+    return proximityCheck(data) or drawScreenCheck(data)
 end
 
 --[[
@@ -295,9 +324,11 @@ local function update()
     -- It's necessary to use the previous frame's scroll value to make things line up properly.
     
     -- FIXME: when panning backwards in TASEditor, the ghost is screwy.
-    -- This is because it uses the wrong prevScrlEmu value.
+    -- This is because it uses the wrong prevScrlXEmu value.
     -- The solution is to store a table of all the scroll values...is it worth it?
     
+    xPosEmu = memory.readbyte(0x0460)
+    yPosEmu = memory.readbyte(0x04A0)
     prevScrlXEmu = scrlXEmu
     prevScrlYEmu = scrlYEmu
     screenEmu = memory.readbyte(0x0440)
@@ -306,12 +337,7 @@ local function update()
     prevGameState = gameState
     scrlXEmu = memory.readbyte(0x1F)
     scrlYEmu = memory.readbyte(0x22)
-    gameState = memory.readbyte(0x01FE)
-    
-    local xScrlDraw = prevScrlXEmu
-    local yScrlDraw = prevScrlYEmu
-    xPosEmu = memory.readbyte(0x0460)
-    yPosEmu = memory.readbyte(0x04A0)
+    gameState = memory.readbyte(0x01FE)  
     
     if gameState==SCROLLING and prevGameState~=SCROLLING then
         scrollStartFrame = emu.framecount()
@@ -329,17 +355,19 @@ local function update()
     -- about 1 second before the actual scroll commences.
     -- However, in both cases, this occurs after exactly 33 frames of waiting, so that's what I check for.
     -- Downwards scrolling needs a similar fixup, but upwards does not.
+    
+    -- TODO: split this out for sure. Can set the global screenEmu or return updated value.
     if gameState==SCROLLING and scrollDuration >= 32 and scrollDuration <= 91 then
         if scrlXEmu==0 and scrlYEmu==0 then
             -- assume boss door for now
             screenEmu = screenEmu - 1
-        elseif scrlXEmu~=0 and xPosEmu>200 then
+        elseif scrlXEmu ~= 0 and xPosEmu > 200 then
             -- scrolling horizontally for sure
             screenEmu = screenEmu - 1
-        elseif scrlYEmu~=0 then
+        elseif scrlYEmu ~= 0 then
             yPosEmu = yPosEmu + scrlYEmu
-            if not scrollingUp and yPosEmu>200 then
-                screenEmu = screenEmu-1
+            if not scrollingUp and yPosEmu > 200 then
+                screenEmu = screenEmu - 1
             end
         end
     end
@@ -359,6 +387,7 @@ local function update()
     local yPos = data.yPos
     local screen = data.screen
     
+    -- TODO: Possibly have anm.update return a nice table instead of these weird tuples
     local offsetX, offsetY, img = anm.update(data)
     
     -- Mega Man not on screen this frame.
@@ -380,39 +409,20 @@ local function update()
         return
     end
     
-    
-    local drawX    = math.ceil(AND(xPos + 255 - xScrlDraw, 255))    + offsetX + screenOffsetX
-    local drawXEmu = math.ceil(AND(xPosEmu + 255 - xScrlDraw, 255)) + offsetX + screenOffsetX
+    local drawX    = getScreenX(xPos)    + offsetX + screenOffsetX
+    local drawXEmu = getScreenX(xPosEmu) + offsetX + screenOffsetX
     
     -- gui.text(5,20,string.format("ghost: %d:%d",screen,drawX))
     
-    -- Y position wrapping (to make sure drawY is on-screen).
-    -- For X I can use cool bitwise stuff (stolen from mm2_minimap.lua), but wrapping by multiples of 240
-    -- isn't quite so elegant.
-    local drawY = yPos - yScrlDraw
-    local drawYEmu = yPosEmu - yScrlDraw
+    local drawY    = getScreenY(yPos)    + offsetY + screenOffsetY
+    local drawYEmu = getScreenY(yPosEmu) + offsetY + screenOffsetY
     -- gui.text(0,10,"drawY: "..drawY)
     -- gui.text(0,30,"yScrlDraw: "..yScrlDraw)
     -- gui.text(0,40,"yPos: "..yPos)
-    
-    -- Need to detect when drawY goes negative. Signed reads aren't appropriate because drawY can be >=128...
-    if drawY < 0 then
-        drawY = drawY + 240
-    end
-    -- elseif drawY > 240 then
-    --   drawY = drawY - 240
-    -- end
+ 
     -- gui.text(5,40,"drawY after: "..drawY)
-    drawY = drawY + offsetY + screenOffsetY
-    drawYEmu = drawYEmu + offsetY + screenOffsetY
     
-    -- FIXME: Y position is signed...sort of. When Mega Man jumps off the top of the screen, it goes negative...i.e., Y=255
-    -- But, readByteSigned is not a valid choice here, because Y >= 128 can also signify halfway down the screen...what to do???
-    
-    if not shouldDraw(data, drawX, drawXEmu, drawY, drawYEmu) then return end 
-    
-    -- TODO: Put this in shouldDraw, for the love of God.
-    -- drawXEmu and drawYEmu are the only things that really need to be passed or split off
+    if not shouldDraw(data) then return end 
     
     if retroMode then
         -- Create a retro-style flicker transparency!
