@@ -32,29 +32,34 @@ if not arg then
     return
 end
 
-local path
+local rootPath = "ghosts"
+local filename
 
 -- TODO: Fuck arg! There's a built in gui library!
 if #arg > 0 then
-    path = arg
+    filename = arg
 elseif movie.active() and not taseditor.engaged() then
-    path = movie.getname()
-    local idx = string.find(path, "[/\\\\][^/\\\\]*$") -- last index of a slash or backslash
-    path = path:sub(idx+1, path:len())                 -- path now equals the filename, e.g. "my_movie.fm2"
-    path = "ghosts/"..path..".ghost"
+    filename = movie.getname()
+    local idx = filename:find("[/\\\\][^/\\\\]*$") -- last index of a slash or backslash
+    filename = filename:sub(idx + 1, path:len())   -- path now equals the filename, e.g. "my_movie.fm2"
 else -- TODO: Have record.lua record to the same temp file every time? 
     -- There's a bug with the TASEditor! movie.active() returns true, but movie.getname() returns an empty string.
     if taseditor.engaged() then
         print("WARNING: TASEditor is active. Can't name ghost after movie.")
         print()
     end
-    path = os.date("ghosts/%Y-%m-%d %H-%M-%S.ghost")
+    filename = os.date("%Y-%m-%d %H-%M-%S.ghost")
 end 
+
+local path = rootPath.."/"..filename
+if path:sub(path:len() - 5, path:len()) ~= ".ghost" then
+    path = path..".ghost"
+end
 
 local VERSION = 3
 
-local ghost = io.open(path,"wb")
-assert(ghost,"Could not open \""..path.."\"")
+local ghost = io.open(path, "wb")
+assert(ghost, "Could not open \""..path.."\"")
 
 print("Writing to \""..path.."\"...")
 
@@ -84,7 +89,9 @@ local DOUBLE_DEATH = 134 -- It's a different gamestate somehow!!
 local DOUBLE_DEATH2 = 146 -- ???
 local WILY_KILL = 65 -- basically BOSS_KILL
 
+-- TODO: invalid states??? {PAUSED, DEAD, MENU, READY}
 local validStates = {PLAYING, BOSS_RUSH, LAGGING, HEALTH_REFILL, MENU, BOSS_KILL, LAGGING2, DOUBLE_DEATH, DOUBLE_DEATH2, WILY_KILL, LAGGING3}
+local freezeStates = {HEALTH_REFILL, LAGGING, LAGGING2, LAGGING3}
 local climbAnims  = {0x1B, 0x1C, 0x1E}
 
 local function validState(gameState)
@@ -179,6 +186,7 @@ local function main()
         flags = OR(flags, SCREEN_FLAG)
     end
     
+    -- TODO: also do this if lagging.
     if gameState==HEALTH_REFILL or isClimbing() and vySub==0 then
         flags = OR(flags, HALT_FLAG)
     end
