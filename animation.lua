@@ -282,8 +282,8 @@ function mod.update(data)
     end
     
     -- Nothing to draw!
-    if animIndex==0xFF then
-        return
+    if animIndex == 0xFF then
+        return {noDraw=true}
     end
     
     -- Special case: we need to preserve the animation frame between regular running, and running+shooting (indexes 8 and 9)
@@ -302,7 +302,11 @@ function mod.update(data)
     
     -- Unknwon animation index. Return the index and an error message to be handled by the main update code.
     if not animTable[animIndex] then
-        return animIndex, string.format("Unknown animation index %02X! (%sflipped)", animIndex, (animTable==flip) and "" or "not ")
+        -- return animIndex, string.format("Unknown animation index %02X! (%sflipped)", animIndex, (animTable==flip) and "" or "not ")
+        return {
+            animIndex = animIndex,
+            errorMessage = string.format("Unknown animation index %02X! (%sflipped)", animIndex, (animTable==flip) and "" or "not ")
+        }
     end
     
     -- Does this copy the whole string over?
@@ -333,7 +337,12 @@ function mod.update(data)
     prevAnimIndex = animIndex
     
     -- return values from before the update
-    return offsetX, offsetY, img
+    -- return offsetX, offsetY, img
+    return {
+        offsetX = offsetX,
+        offsetY = offsetY,
+        image = img
+    }
     
 end
 

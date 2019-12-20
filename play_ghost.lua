@@ -381,33 +381,38 @@ local function update()
     -- gui.text(5,10,string.format("you:   %d:%d; state=%d, scrl=%d",screenEmu,yPosEmu,gameState,scrlYEmu))
     
     local data = readData()
-    if not data then return end -- this frame is out of range of the ghost
+    if not data then return end -- this frame is out of range of the ghost. Possibly put this check in shouldDraw
+    
+    if not shouldDraw(data) then return end
     
     local xPos = data.xPos
     local yPos = data.yPos
     local screen = data.screen
     
-    -- TODO: Possibly have anm.update return a nice table instead of these weird tuples
-    local offsetX, offsetY, img = anm.update(data)
+    local anmData = anm.update(data)
     
     -- Mega Man not on screen this frame.
-    if not offsetX then
+    if anmData.noDraw then
+        return
+    end 
+    
+    -- Unknown animation index! Draw an error squarror.
+    if not anmData.image then
+        local animIndex = anmData.animIndex
+        local message = anmData.errorMessage
+        local drawX = getScreenX(xPos) + screenOffsetX + 8
+        local drawY = getScreenY(yPos) + screenOffsetY
+        
+        gui.box(drawX, drawY, drawX + 24, drawY + 24)
+        gui.text(drawX + 8, drawY, string.format("%02X", animIndex))
+        gui.text(10, 10, message, "FFFFFF") -- TODO: add a nice queue for dynamic gui.text messages
+        print(message)
         return
     end
     
-    -- Unknown animation index! Draw an error squarror.
-    if not img then
-        local animIndex = offsetX -- First return value from anm.update was actually animIndex.
-        local msg = offsetY       -- Second return value from anm.update was actually error message.
-        local drawX = math.ceil(AND(xPos + 255 - xScrlDraw, 255)) + screenOffsetX + 8
-        local drawY = yPos + screenOffsetY
-        -- local drawY = math.ceil(AND(yPos-curScrlY+255,255)) + screenOffsetY
-        gui.box(drawX, drawY, drawX + 24, drawY + 24)
-        gui.text(drawX + 8, drawY, string.format("%02X", animIndex))
-        gui.text(10, 10, msg, "FFFFFF") -- TODO: add a nice queue for dynamic gui.text messages
-        print(msg)
-        return
-    end
+    local image = anmData.image
+    local offsetX = anmData.offsetX
+    local offsetY = anmData.offsetY
     
     local drawX    = getScreenX(xPos)    + offsetX + screenOffsetX
     local drawXEmu = getScreenX(xPosEmu) + offsetX + screenOffsetX
@@ -422,15 +427,13 @@ local function update()
  
     -- gui.text(5,40,"drawY after: "..drawY)
     
-    if not shouldDraw(data) then return end 
-    
     if retroMode then
         -- Create a retro-style flicker transparency!
         if emu.framecount() % 3 ~= 0 then     --2 on, 1 off. This creates a pseudo-transparency of 0.67, which is close enough
-            gui.image(drawX, drawY, img, 1.0) --to the 0.7 value used below.
+            gui.image(drawX, drawY, image, 1.0) --to the 0.7 value used below.
         end
     else
-        gui.image(drawX, drawY, img, ghostAlpha)
+        gui.image(drawX, drawY, image, ghostAlpha)
     end
 
 end
