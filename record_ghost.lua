@@ -1,6 +1,5 @@
 --[[
-
-    Records a v2 ghost file as you play. See format specs v2.txt for the specifics. Or infer them from my code ;)
+    Records a v3 ghost file as you play. See format specs v3.txt for the specifics. Or infer them from my code ;)
     You can provide a path to the desired recording location as an argument (in the Arguments box). If you don't, the script will
     generate a filename based on the time and date by default.
     
@@ -9,7 +8,6 @@
           Alternatively, MAKE A PROPER FUCKING FILE SELECTOR GUI.
     
     TODO: Can't create new directories?
-
 ]]
 
 local bit = require("bit")
@@ -18,7 +16,7 @@ local rshift, band = bit.rshift, bit.band
 local function writeNumBE(file, val, length)
     for i = length-1, 0, -1 do
         file:write(string.char(band(rshift(val, i*8), 0xFF))) -- Lua makes binary file I/O such a pain.
-        -- file.write( (val>>(i<<3)) & 0xFF ) --how things could be. How they SHOULD be.
+        -- file.write( (val>>(i<<3)) & 0xFF ) -- How things could be. How they SHOULD be.
     end
 end
 
@@ -101,7 +99,6 @@ local function validState(gameState)
     return false
 end
 
--- FIXME: This does not work at all. Actually check if up or down is being pressed.
 local function isClimbing()
     for _, anim in ipairs(climbAnims) do
         if anim==animIndex then return true end
@@ -187,6 +184,7 @@ local function main()
     end
     
     -- TODO: also do this if lagging.
+    -- FIXME: This does not work at all. Actually check if up or down is being pressed.
     if gameState==HEALTH_REFILL or isClimbing() and vySub==0 then
         flags = OR(flags, HALT_FLAG)
     end
@@ -218,7 +216,7 @@ emu.registerafter(main)
 local function finalize()
     print("Finishsed recording on frame "..emu.framecount()..".")
     print("Ghost is "..length.." frames long.")
-    ghost:seek("set", 0x06) --Length was unknown until this point. Go back and save it.
+    ghost:seek("set", 0x06) -- Length was unknown until this point. Go back and save it.
     writeNumBE(ghost, length, 4)
     ghost:close()
 end
