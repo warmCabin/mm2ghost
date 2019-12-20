@@ -302,7 +302,6 @@ function mod.update(data)
     
     -- Unknwon animation index. Return the index and an error message to be handled by the main update code.
     if not animTable[animIndex] then
-        -- return animIndex, string.format("Unknown animation index %02X! (%sflipped)", animIndex, (animTable==flip) and "" or "not ")
         return {
             animIndex = animIndex,
             errorMessage = string.format("Unknown animation index %02X! (%sflipped)", animIndex, (animTable==flip) and "" or "not ")
@@ -337,7 +336,6 @@ function mod.update(data)
     prevAnimIndex = animIndex
     
     -- return values from before the update
-    -- return offsetX, offsetY, img
     return {
         offsetX = offsetX,
         offsetY = offsetY,
