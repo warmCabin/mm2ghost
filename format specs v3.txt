@@ -1,5 +1,5 @@
 0x00-0x03: 4-byte signature: 6D 6D 32 67 ("mm2g")
-0x04-0x05: version number: 2-byte, unsigned, big-endian (should be 00 02)
+0x04-0x05: version number: 2-byte, unsigned, big-endian (should be 00 03)
 0x06-0x09: length: 4-byte, unsigned, big-endian
 
 Following this header is length frames of data.
@@ -28,7 +28,7 @@ flags:
 |||| +---- sCreen #: set whenever Mega Man crosses over to a new screen. When this bit is 1,
 ||||       the new screen number (1 byte) will follow. This value can be interpreted as the high
 ||||       byte of Mega Man's X position.
-|||+------ Halt animation: If set, the animation timer should freeze during playback
+|||+------ Halt animation: If set, the animation timer should freeze during playback.
 +++------- Unused. Set to 0.
 	
 If multiple "extra byte" flags are set, their corresponding extra bytes will appear in order from least to most
