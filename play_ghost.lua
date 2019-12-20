@@ -31,7 +31,7 @@ setmetatable(cfg, {__index = {
 }})
 
 -- Read number Big-endian
-local function readNumBE(file,length)
+local function readNumBE(file, length)
     assert(length <= 8, "Read operation will overflow.")
     local ans = 0
     for i = 1, length do
@@ -188,8 +188,10 @@ print()
 ]]
 
 local SCROLLING = 156
-local INVALID_STATES = {195, 247, 255}
+local INVALID_STATES = {195, 247, 255, 78, 120}
 
+local xPosEmu
+local yPosEmu
 local screenEmu = 0
 local drawScreenEmu = 0
 local prevDrawScreenEmu = 0
@@ -225,38 +227,60 @@ local function readData()
     
 end
 
--- Wrapping checks (to make sure ghosts don't draw when they're too far away).
--- These aren't quite sufficient on their own. Screen scrolls set the screen number a bit prematurely,
--- so the logic in update() that fixes it up is necessary.
--- Wrapping is further complicated by the fact that there is no such thing as up, down, left, and right rooms in Mega Man 2;
--- only PREVIOUS and NEXT. The screen and X/Y coordinates are therefore not sufficient to compute the relative inter-screen
--- position of Mega Man and a ghost. We can monitor the scroll values to determine what's really happening.
+--[[
+    Wrapping checks (to make sure ghosts don't draw when they're too far away).
+    These aren't quite sufficient on their own. Screen scrolls set the screen number a bit prematurely,
+    so the logic in update() that fixes it up is necessary.
+    Wrapping is further complicated by the fact that there is no such thing as up, down, left, and right rooms in Mega Man 2;
+    only PREVIOUS and NEXT. The screen and X/Y coordinates are therefore not sufficient to compute the relative inter-screen
+    position of Mega Man and a ghost. We can monitor the scroll values to determine what's really happening.
+]]
 
--- TODO: put the old wrapping check in here!
-local function proximityCheck(data)
-    return false
+-- TODO: rather than passing all these params, make a pair of getDrawCoord functions?
+local function proximityCheck(data, drawX, drawXEmu, drawY, drawYEmu)
+
+    if scrlYEmu == 0 then
+        -- horizontal transition, large contiguous room, or not scrolling.
+        if drawX - drawXEmu ~= (data.screen*256 + data.xPos) - (screenEmu*256 + xPosEmu) then
+            return false
+        end
+    elseif scrollingUp then
+        -- FIXME: there's a 1-frame fuckup in this case. It's because drawY uses the previous frame's scroll value.
+        if drawY - drawYEmu ~= (-data.screen*240 + data.yPos) - (-screenEmu*240 + yPosEmu) then
+            return false
+        end
+    else
+        -- scrolling down
+        if drawY - drawYEmu ~= (data.screen*240 + data.yPos) - (screenEmu*240 + yPosEmu) then
+            return false
+        end
+    end
+    
+    return true
 end
 
--- TODO: logic to support vertical scrolls as well.
+-- TODO: logic to support vertical scrolls as well. Should be very similar to proximityCheck.
 local function drawScreenCheck(data)
     local x = (data.screen - prevDrawScreenEmu)*256 + data.xPos - prevScrlXEmu
     -- gui.text(5, 30, string.format("scroll: %d", prevScrlXEmu))
     -- gui.text(5, 40, string.format("ghostly x: %d", x))
     -- gui.text(5, 50, string.format("ghostly screen #: %d", data.screen))
     -- gui.text(5, 60, string.format("ghostly actual x: %d", data.xPos))
-    if x >= 0 and x < 256 then
+    if x > 0 and x < 256 then
         return true
     end
 end
 
-local function shouldDraw(data)
+local function shouldDraw(data, drawX, drawXEmu, drawY, drawYEmu)
     for _, state in ipairs(INVALID_STATES) do
         if gameState==state then return false end
     end
     
+    if not showGhost then return false end
+    
     if not checkWrap then return true end
     
-    return proximityCheck(data) or drawScreenCheck(data)
+    return proximityCheck(data, drawX, drawXEmu, drawY, drawYEmu) or drawScreenCheck(data)
 end
 
 --[[
@@ -286,8 +310,8 @@ local function update()
     
     local xScrlDraw = prevScrlXEmu
     local yScrlDraw = prevScrlYEmu
-    local xPosEmu = memory.readbyte(0x0460)
-    local yPosEmu = memory.readbyte(0x04A0)
+    xPosEmu = memory.readbyte(0x0460)
+    yPosEmu = memory.readbyte(0x04A0)
     
     if gameState==SCROLLING and prevGameState~=SCROLLING then
         scrollStartFrame = emu.framecount()
@@ -385,38 +409,18 @@ local function update()
     -- FIXME: Y position is signed...sort of. When Mega Man jumps off the top of the screen, it goes negative...i.e., Y=255
     -- But, readByteSigned is not a valid choice here, because Y >= 128 can also signify halfway down the screen...what to do???
     
-    -- if not shouldDraw(data) then return end 
+    if not shouldDraw(data, drawX, drawXEmu, drawY, drawYEmu) then return end 
     
     -- TODO: Put this in shouldDraw, for the love of God.
     -- drawXEmu and drawYEmu are the only things that really need to be passed or split off
-    if checkWrap and not shouldDraw(data) then
-        if scrlYEmu == 0 then
-            -- horizontal transition, large contiguous room, or not scrolling.
-            if drawX - drawXEmu ~= (screen*256 + xPos) - (screenEmu*256 + xPosEmu) then
-                return
-            end
-        elseif scrollingUp then
-            -- FIXME: there's a 1-frame fuckup in this case. It's because drawY uses the previous frame's scroll value.
-            if drawY - drawYEmu ~= (-screen*240 + yPos) - (-screenEmu*240 + yPosEmu) then
-                return
-            end
-        else
-            -- scrolling down
-            if drawY - drawYEmu ~= (screen*240 + yPos) - (screenEmu*240 + yPosEmu) then
-                return
-            end
-        end
-    end
     
-    if showGhost then
-        if retroMode then
-            -- Create a retro-style flicker transparency!
-            if emu.framecount() % 3 ~= 0 then       --2 on, 1 off. This creates a pseudo-transparency of 0.67, which is close enough
-                gui.image(drawX, drawY, img, 1.0) --to the 0.7 value used below.
-            end
-        else
-            gui.image(drawX, drawY, img, ghostAlpha)
+    if retroMode then
+        -- Create a retro-style flicker transparency!
+        if emu.framecount() % 3 ~= 0 then     --2 on, 1 off. This creates a pseudo-transparency of 0.67, which is close enough
+            gui.image(drawX, drawY, img, 1.0) --to the 0.7 value used below.
         end
+    else
+        gui.image(drawX, drawY, img, ghostAlpha)
     end
 
 end
