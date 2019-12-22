@@ -11,6 +11,7 @@
 ]]
 
 local bit = require("bit")
+local loader = require("load_ghost")
 local rshift, band = bit.rshift, bit.band
 
 local function writeNumBE(file, val, length)
@@ -30,10 +31,9 @@ if not arg then
     return
 end
 
-local rootPath = "ghosts"
-local filename
-
--- TODO: Fuck arg! There's a built in gui library!
+local baseDir = "ghosts"
+--local filename
+--[[
 if #arg > 0 then
     filename = arg
 elseif movie.active() and not taseditor.engaged() then
@@ -47,19 +47,21 @@ else -- TODO: Have record.lua record to the same temp file every time?
         print()
     end
     filename = os.date("%Y-%m-%d %H-%M-%S.ghost")
-end 
+end ]]
 
-local path = rootPath.."/"..filename
-if path:sub(path:len() - 5, path:len()) ~= ".ghost" then
-    path = path..".ghost"
-end
+--local path = rootPath.."/"..filename
+--if path:sub(path:len() - 5, path:len()) ~= ".ghost" then
+--    path = path..".ghost"
+--end
 
 local VERSION = 3
 
-local ghost = io.open(path, "wb")
-assert(ghost, "Could not open \""..path.."\"")
+--local ghost = io.open(path, "wb")
+--assert(ghost, "Could not open \""..path.."\"")
+local ghost = loader.writeGhost(baseDir)
 
-print("Writing to \""..path.."\"...")
+--print("Writing to \""..path.."\"...")
+print("Writing to ghost file...")
 
 ghost:write("mm2g") -- signature
 writeNumBE(ghost, VERSION, 2) -- 2-byte version

@@ -13,6 +13,7 @@
 
 local bit = require("bit")
 local anm = require("animation")
+local loader = require("load_ghost")
 local cfg = {}
 
 -- janky Lua try/catch
@@ -58,15 +59,14 @@ if not arg then
     return
 end
 
-if #arg==0 then
-    print("Please specify a filename in the Arguments box.")
+-- if #arg==0 then
+
+local ghost = loader.readGhost("./ghosts")
+-- assert(ghost, string.format("\nCould not open ghost file \"%s\"", path))
+if not ghost then
+    print("No file selected.")
     return
 end
-
-local path = arg
-
-local ghost = io.open(path, "rb")
-assert(ghost, string.format("\nCould not open ghost file \"%s\"", path))
 
 -- check for signature
 assert(ghost:read(4)=="mm2g", "\nInvalid or corrupt ghost file (missing signature).")
@@ -174,7 +174,8 @@ local function init()
     end    
 end
 
-print(string.format("Loading \"%s\"...", path))
+-- print(string.format("Loading \"%s\"...", path))
+print("Loading ghost data...")
 init()
 print("Done.")
 
