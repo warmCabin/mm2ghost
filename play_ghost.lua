@@ -7,6 +7,8 @@
     This script proivdes a button in TASEditor labelled "Show/Hide Ghost." When a ghost is hidden,
     all calculations are still carried out, but it is not drawn. The primary intended use of this
     button is for cleaning up AVI recordings.
+    
+    Idea: make a control panel GUI that lets you load different ghosts and change the starting offset
 ]]
 
 local bit = require("bit")
@@ -159,7 +161,7 @@ local function init()
             data.screen = readByte(ghost)
             curScreen = data.screen
         else
-            --curScreen will always remain nil in versions before 2
+            -- curScreen will always remain nil in versions before 2
             data.screen = curScreen
         end
         
@@ -167,6 +169,7 @@ local function init()
             data.halt = true
         end
         
+        -- TODO: Just use i+1. Would enable dynamic changing of startFrame.
         ghostData[startFrame + i - 1] = data
     end    
 end
@@ -270,34 +273,50 @@ local function proximityCheck(data)
 
     if scrlYEmu == 0 then
         -- horizontal transition, large contiguous room, or not scrolling.
-        if drawX - drawXEmu ~= (data.screen*256 + data.xPos) - (screenEmu*256 + xPosEmu) then
-            return false
-        end
+        return drawX - drawXEmu == (data.screen*256 + data.xPos) - (screenEmu*256 + xPosEmu)
     elseif scrollingUp then
         -- FIXME: there's a 1-frame fuckup in this case. It's because drawY uses the previous frame's scroll value. Maybe use prevScreenEmu?
-        if drawY - drawYEmu ~= (-data.screen*240 + data.yPos) - (-screenEmu*240 + yPosEmu) then
-            return false
-        end
+        return drawY - drawYEmu == (-data.screen*240 + data.yPos) - (-screenEmu*240 + yPosEmu)
     else
         -- scrolling down
-        if drawY - drawYEmu ~= (data.screen*240 + data.yPos) - (screenEmu*240 + yPosEmu) then
-            return false
-        end
+        return drawY - drawYEmu == (data.screen*240 + data.yPos) - (screenEmu*240 + yPosEmu)
     end
     
     return true
 end
 
--- TODO: logic to support vertical scrolls as well. Should be very similar to proximityCheck.
+-- Wrapping check based on the currently visible screen.
+-- Mega Man's position gets out of sync with the visible screen during elaborate zipping maneuvers.
+-- This check allows ghosts to appear on the visible screen even when the player is physically many screens ahead.
 local function drawScreenCheck(data)
-    local x = (data.screen - prevDrawScreenEmu)*256 + data.xPos - prevScrlXEmu
-    -- gui.text(5, 30, string.format("scroll: %d", prevScrlXEmu))
-    -- gui.text(5, 40, string.format("ghostly x: %d", x))
-    -- gui.text(5, 50, string.format("ghostly screen #: %d", data.screen))
-    -- gui.text(5, 60, string.format("ghostly actual x: %d", data.xPos))
-    if x > 0 and x < 256 then
-        return true
+    
+    if scrlYEmu == 0 then
+        -- horizontal transition, large contiguous room, or not scrolling.
+        local x = (data.screen - prevDrawScreenEmu)*256 + data.xPos - prevScrlXEmu
+        -- gui.text(5, 30, string.format("scroll: %d", prevScrlXEmu))
+        -- gui.text(5, 40, string.format("ghostly x: %d", x))
+        -- gui.text(5, 50, string.format("ghostly screen #: %d", data.screen))
+        -- gui.text(5, 60, string.format("ghostly actual x: %d", data.xPos))
+        return x > 0 and x < 256
+    else
+      return false
     end
+    --[[elseif scrollingUp then
+        local y = (prevDrawScreenEmu - data.screen + 1)*240 + data.yPos - prevScrlYEmu
+        gui.text(5, 30, string.format("scroll: %d", prevScrlYEmu))
+        gui.text(5, 40, string.format("ghostly y: %d", y))
+        gui.text(5, 50, string.format("ghostly screen #: %d", data.screen))
+        gui.text(5, 60, string.format("ghostly actual y: %d", data.yPos))
+        return y > 0 and y < 240
+    else
+        -- scrolling down
+        local y = (data.screen - prevDrawScreenEmu)*240 + data.yPos - prevScrlYEmu
+        gui.text(5, 30, string.format("scroll: %d", prevScrlYEmu))
+        gui.text(5, 40, string.format("ghostly y: %d", y))
+        gui.text(5, 50, string.format("ghostly screen #: %d", data.screen))
+        gui.text(5, 60, string.format("ghostly actual y: %d", data.yPos))
+        return y > 0 and y < 240
+    end]]
 end
 
 local function shouldDraw(data)
@@ -383,18 +402,16 @@ local function update()
     local data = readData()
     if not data then return end -- this frame is out of range of the ghost. Possibly put this check in shouldDraw
     
+    local anmData = anm.update(data)
+    
+    -- Mega Man not on screen this frame
+    if anmData.noDraw then return end
+    
     if not shouldDraw(data) then return end
     
     local xPos = data.xPos
     local yPos = data.yPos
     local screen = data.screen
-    
-    local anmData = anm.update(data)
-    
-    -- Mega Man not on screen this frame.
-    if anmData.noDraw then
-        return
-    end 
     
     -- Unknown animation index! Draw an error squarror.
     if not anmData.image then
