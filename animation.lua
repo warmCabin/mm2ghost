@@ -158,9 +158,12 @@ mod.flip = flip
 Alternative approach: automatically setup each flip entry like so,
 then manually set the X offset:
 for k,v in pairs(anim) do
-    flip[k] = {flipGD(anim[k][1]),0,anim[k][3],anim[k][4]}
-    flip[k][2] = 
-end ]]
+    flip[k] = {flipGD(anim[k][1]), 0, anim[k][3], anim[k][4]}
+end 
+flip[0x00][2] = ...
+flip[0x01][2] = ...
+...
+]]
 
 local palettes = {} -- outline, undies, body
 palettes[0]  = {{r=0, g=0, b=0}, {r=0, g=112, b=236}, {r=0, g=232, b=216}}     -- P
@@ -173,8 +176,8 @@ palettes[6]  = {{r=0, g=0, b=0}, {r=188, g=0, b=188}, {r=252, g=196, b=252}}   -
 palettes[7]  = {{r=0, g=0, b=0}, {r=136, g=112, b=0}, {r=252, g=216, b=168}}   -- M
 palettes[8]  = {{r=0, g=0, b=0}, {r=252, g=116, b=96}, {r=252, g=252, b=252}}  -- C
 palettes[9]  = {{r=0, g=0, b=0}, {r=216, g=40, b=0}, {r=252, g=252, b=252}}    -- 1
-palettes[10] = palettes[9]                                               -- 2
-palettes[11] = palettes[9]                                               -- 3
+palettes[10] = palettes[9]                                                     -- 2
+palettes[11] = palettes[9]                                                     -- 3
 
 mod.palettes = palettes
 

@@ -13,6 +13,7 @@
 
 local bit = require("bit")
 local anm = require("animation")
+local loader = require("load_ghost")
 local cfg = {}
 
 -- janky Lua try/catch
@@ -29,7 +30,8 @@ setmetatable(cfg, {__index = {
     xOffset = -14,
     yOffset = -11,
     retro = false,
-    checkWrapping = true
+    checkWrapping = true,
+    baseDir = "./ghosts"
 }})
 
 -- Read number Big-endian
@@ -50,20 +52,25 @@ local function readByte(file)
 end
 
 -- arg is the literal string passed in the Arguments box, no space separation. (TODO: argparse?)
--- It can be null sometimes, even if you type something in. No idea why... You can fix this by
--- hitting restart. I give a different error message when this strange bug occurs.
+-- It can be nil sometimes, even if you type something in. No diea why. It really does get lost somewhere!
+-- You can fix this by hitting Restart.
 if not arg then
     print("Command line arguments got lost somehow :(")
     print("Please run this script again.")
     return
 end
 
-if #arg==0 then
-    print("Please specify a filename in the Arguments box.")
-    return
-end
+local path
 
-local path = arg
+if #arg > 0 then
+    path = arg
+else
+    path = loader.readGhost(cfg.baseDir)
+    if not path then
+        print("No file selected.")
+        return
+    end
+end
 
 local ghost = io.open(path, "rb")
 assert(ghost, string.format("\nCould not open ghost file \"%s\"", path))
@@ -181,14 +188,6 @@ print("Done.")
 print(string.format("Playing ghost on frame %d", emu.framecount()))
 print(string.format("%d frames of data", ghostLen))
 print()
-    
---[[
-    TODO: config.lua should contain:
-        [ ] Ghost directory, so user only specifies the name.
-        [O] screen offset X and Y
-        [O] "retro" (flickery) mode
-        [O] Enable wrapping
-]]
 
 local SCROLLING = 156
 local INVALID_STATES = {195, 247, 255, 78, 120}
@@ -208,6 +207,7 @@ local scrollStartFrame = 0
 local scrollingUp = false
 local weapon = 0
 local prevSelect = false
+local iFrames = 0
 
 --[[
     This function is simple enough that it seems like it should be inline.
@@ -281,8 +281,6 @@ local function proximityCheck(data)
         -- scrolling down
         return drawY - drawYEmu == (data.screen*240 + data.yPos) - (screenEmu*240 + yPosEmu)
     end
-    
-    return true
 end
 
 -- Wrapping check based on the currently visible screen.
@@ -328,6 +326,8 @@ local function shouldDraw(data)
     
     if not checkWrap then return true end
     
+    -- gui.text(5, 10, "proximityCheck: "..tostring(proximityCheck(data)))
+    -- gui.text(5, 20, "drawScreenCheck: "..tostring(drawScreenCheck(data)))
     return proximityCheck(data) or drawScreenCheck(data)
 end
 
@@ -356,7 +356,8 @@ local function update()
     prevGameState = gameState
     scrlXEmu = memory.readbyte(0x1F)
     scrlYEmu = memory.readbyte(0x22)
-    gameState = memory.readbyte(0x01FE)  
+    gameState = memory.readbyte(0x01FE)
+    iFrames = memory.readbyte(0x4B)
     
     if gameState==SCROLLING and prevGameState~=SCROLLING then
         scrollStartFrame = emu.framecount()
@@ -376,7 +377,15 @@ local function update()
     -- Downwards scrolling needs a similar fixup, but upwards does not.
     
     -- TODO: split this out for sure. Can set the global screenEmu or return updated value.
-    if gameState==SCROLLING and scrollDuration >= 32 and scrollDuration <= 91 then
+    --   screenEmu = scrollFixup()
+    -- FIXME: This fails when scrolling backwards. Simply invert scrollingUp once you figure out how to detect that.
+    
+    -- Bottomless pit death shares the scrolling game state. But the iFrames variable is reused as a respawning flag,
+    -- so it can be used to distinguish between bottomless pits and scrolling.
+    -- There's an edge case, however: if your i-frames reach 1 on the exact frame you start to scroll,
+    -- this check will not properly set the screen number.
+    -- Standard enemy deaths are not a concern.
+    if gameState == SCROLLING and iFrames ~= 1 and scrollDuration >= 32 and scrollDuration <= 91 then
         if scrlXEmu==0 and scrlYEmu==0 then
             -- assume boss door for now
             screenEmu = screenEmu - 1
