@@ -13,6 +13,25 @@
 local bit = require("bit")
 local loader = require("load_ghost")
 local rshift, band = bit.rshift, bit.band
+local cfg = {}
+
+-- janky Lua try/catch
+if not pcall(function()
+    cfg = require("config")
+end) then
+    print("Error loading configuration file! Reverting to default settings.")
+    print("Are all the values separated by commas?")
+    print()
+end
+
+-- the defaults, all wrapped up in Lua meta-magic
+setmetatable(cfg, {__index = {
+    xOffset = -14,
+    yOffset = -11,
+    retro = false,
+    checkWrapping = true,
+    baseDir = "./ghosts"
+}})
 
 local function writeNumBE(file, val, length)
     for i = length-1, 0, -1 do
@@ -32,14 +51,13 @@ if not arg then
 end
 
 local VERSION = 3
-local baseDir = "./ghosts"
 
 local path
 
 if #arg > 0 then
     path = loader.fixup(arg)
 else
-    path = loader.writeGhost(baseDir)
+    path = loader.writeGhost(cfg.baseDir)
     if not path then
         print("No file selected.")
         return

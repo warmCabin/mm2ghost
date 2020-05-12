@@ -30,7 +30,8 @@ setmetatable(cfg, {__index = {
     xOffset = -14,
     yOffset = -11,
     retro = false,
-    checkWrapping = true
+    checkWrapping = true,
+    baseDir = "./ghosts"
 }})
 
 -- Read number Big-endian
@@ -59,14 +60,12 @@ if not arg then
     return
 end
 
--- TODO: put this in config
-local baseDir = "./ghosts"
 local path
 
 if #arg > 0 then
     path = arg
 else
-    path = loader.readGhost(baseDir)
+    path = loader.readGhost(cfg.baseDir)
     if not path then
         print("No file selected.")
         return
