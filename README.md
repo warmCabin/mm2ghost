@@ -50,10 +50,11 @@ after all your old ones, resulting in a complete mess. You should record a movie
 To create a recording:
   1. Load a movie (recommended)
   2. Open record_ghost.lua in FCEUX
-  3. Type the filepath to record to in the argument box (e.g. "ghosts\test.ghost")
-  4. Click "Run"
+  3. Click Run
+  4. Browse to the location where you want to save your recording  
+    4.1 (Alternatively, type the filepath (e.g. "ghosts\test.ghost") in the Arguments box before clicking Run)
   5. Let the emulator run for the entire segment you wish to capture (you can safely use turbo)
-  6. Click "Stop"  
+  6. Click Stop  
   
   
 ## Playing a Ghost
@@ -64,8 +65,9 @@ real time, which is a ton of fun.
 To play a ghost:
   1. Load a movie for comparison (optional)
   2. Open play_ghost.lua in FCEUX
-  3. Type the filepath to read from in the argument box (e.g. "ghosts\test.ghost")
-  4. Click "Run"
+  3. Click Run
+  4. Browse to the ghost you want to play  
+    4.1 (Alternatively, type the filepath (e.g. "ghosts\test.ghost") in the Arguments box before clicking Run)
   5. Watch him go!
   
 Unlike recording a ghost, playing a ghost is **fully compatible** with savestates. Simply load a state and the ghost will travel through time with you.
@@ -106,6 +108,7 @@ config.lua is a Lua source file, which can be opened with your favorite text edi
 |yOffset      |Offset all ghost draws by this many pixels veritcally|  
 |retro        |Enable "retro mode," an old-school flickery effect, as an alternative to plain transparency|
 |checkWrapping|Enable wrapping checks. You may find it useful to disable this for certain zip scenarios.|
+|baseDir      |Base directory to open in the file picker|
 
 Make sure to leave the formatting intact! In particular, each value needs an equals sign and there should be a comma after every value except the last.
 
@@ -131,7 +134,6 @@ Using zips and full items, you could possibly complete some stages faster than t
 
 ## Known Bugs
 
-- Occasional one-frame glitches when scrolling vertically
+- Occasional one-frame glitches when scrolling vertically & loading savestates
 - Running & climbing animations desync from the proper in-game behavior
-- Ghosts may have an incorrect position for 1 frame when loading savestates
 - Negative Y is indistinguishable from high positive Y, leading to some tricky-to-fix wrapping
