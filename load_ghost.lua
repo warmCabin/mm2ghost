@@ -19,22 +19,6 @@ local function concat(baseDir, filepath)
     end
 end
 
-function mod.readGhostString(baseDir, filepath)
-    local file = io.open(concat(baseDir, filepath), "rb") or io.open(filepath, "rb")
-    assert(file, string.format("\nCould not open ghost file \"%s\"", filepath))
-    return file
-end
-
-function mod.writeGhostString(baseDir, filepath)
-    local file = io.open(concat(baseDir, filepath), "wb") or io.open(filepath, "wb")
-    assert(file, string.format("\nCould not open ghost file \"%s\"", filepath))
-    return file
-end
-
---function mod.pickGhost(baseDir, operation)
-  -- maybe  
---end
-
 function mod.readGhost(baseDir)
 
     local filedlg = iup.filedlg{
