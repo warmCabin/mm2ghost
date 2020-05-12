@@ -2,7 +2,7 @@ require("iuplua")
 
 local mod = {}
 
-local function fixup(filename)
+function mod.fixup(filename)
     if filename:sub(filename:len() - 5) ~= ".ghost" then
         filename = filename..".ghost"
     end
@@ -10,7 +10,7 @@ local function fixup(filename)
 end
 
 local function concat(baseDir, filepath)
-    filepath = fixup(filepath)
+    filepath = mod.fixup(filepath)
     local endChar = baseDir:sub(baseDir:len())
     if endChar=='/' or endChar=='\\' then
         return baseDir..filepath
@@ -35,7 +35,6 @@ end
   -- maybe  
 --end
 
--- TODO: maybe have all these return the strings instead of file pointers
 function mod.readGhost(baseDir)
 
     local filedlg = iup.filedlg{
@@ -48,19 +47,16 @@ function mod.readGhost(baseDir)
     filedlg:popup(iup.CENTER, iup.CENTER)
 
     local status = tonumber(filedlg.status)
-    local file
+    local filepath
   
     if status ~= -1 then
-        local filename = filedlg.value
-        -- print(string.format("status=%d, filename=%s", status, filename))
-        print(string.format("Opening \"%s\"...", filename))
-        file = io.open(filename, "rb")
-        assert(file, string.format("\nCould not open ghost file \"%s\"", filename))
+        filepath = filedlg.value
     end
-  
-    filedlg:destroy()
-    return file -- will be nil if user picked no file
     
+    filedlg:destroy()
+    
+    -- will be nil if user cancelled out
+    return filepath
 end
 
 function mod.writeGhost(baseDir)
@@ -75,20 +71,16 @@ function mod.writeGhost(baseDir)
     filedlg:popup(iup.CENTER, iup.CENTER)
 
     local status = tonumber(filedlg.status)
-    local file
+    local filepath
   
     if status ~= -1 then
-        local filename = fixup(filedlg.value)
-        print(string.format("Opening \"%s\"...", filename))
-        file = io.open(filename, "wb")
-        assert(file, string.format("\nCould not open ghost file \"%s\"", filename))
+        filepath = mod.fixup(filedlg.value)
     end
-  
+    
     filedlg:destroy()
-    return file -- will be nil if user picked no file
-  
+    
+    -- will be nil if user cancelled out
+    return filepath
 end
-
--- mod.writeGhost("./ghosts")
 
 return mod

@@ -31,12 +31,24 @@ if not arg then
     return
 end
 
-local baseDir = "ghosts"
---local filename
---[[
+local VERSION = 3
+local baseDir = "./ghosts"
+
+local path
+
 if #arg > 0 then
-    filename = arg
-elseif movie.active() and not taseditor.engaged() then
+    path = loader.fixup(arg)
+else
+    path = loader.writeGhost(baseDir)
+    if not path then
+        print("No file selected.")
+        return
+    end
+end
+
+--[[
+-- generate default filename
+if movie.active() and not taseditor.engaged() then
     filename = movie.getname()
     local idx = filename:find("[/\\\\][^/\\\\]*$") -- last index of a slash or backslash
     filename = filename:sub(idx + 1, path:len())   -- path now equals the filename, e.g. "my_movie.fm2"
@@ -50,18 +62,11 @@ else -- TODO: Have record.lua record to the same temp file every time?
 end ]]
 
 --local path = rootPath.."/"..filename
---if path:sub(path:len() - 5, path:len()) ~= ".ghost" then
---    path = path..".ghost"
---end
 
-local VERSION = 3
+local ghost = io.open(path, "wb")
+assert(ghost, "Could not open \""..path.."\"")
 
---local ghost = io.open(path, "wb")
---assert(ghost, "Could not open \""..path.."\"")
-local ghost = loader.writeGhost(baseDir)
-
---print("Writing to \""..path.."\"...")
-print("Writing to ghost file...")
+print("Writing to \""..path.."\"...")
 
 ghost:write("mm2g") -- signature
 writeNumBE(ghost, VERSION, 2) -- 2-byte version
@@ -70,7 +75,9 @@ writeNumBE(ghost, 0, 4) -- 4-byte length. This gets written later.
 local gameState = 0
 local flipped = true
 local prevWeapon = 0
+local animIndex = 0
 local prevAnimIndex = 0xFF
+local vySub = 0
 local prevScreen = -1
 local length = 0
 
@@ -110,7 +117,7 @@ end
 
 --[[
     Detects if Mega Man is flipped by scanning OAM for his face sprite.
-    There's some sort of flag at 0x0042 that seems to store this data, but I don't trust it.
+    There's some sort of flag at 0x42 that seems to store this data, but I don't trust it.
     This OAM approach fails when Mega Man is:
         - climbing a ladder (and not shooting)
         - in the "splat" frame of his knockback animation
@@ -133,10 +140,24 @@ local function isFlipped()
     return flipped 
 end
 
+
+local function isFrozen()
+    
+    --gui.text(5, 10, "isClimbing: "..tostring(isClimbing()))
+    --gui.text(5, 20, "vySub = "..tostring(vySub))
+    --gui.text(5,30, "joypad check: "..tostring(not (joypad.get(1).up or joypad.get(1).down)))
+    
+    for _, state in ipairs(freezeStates) do
+        if gameState==state then return true end
+    end
+    
+    return isClimbing() and not (joypad.get(1).up or joypad.get(1).down)
+end
+
 local function getAnimIndex()
 
     -- $F9 stores an off-screen flag
-    if memory.readbyte(0x00F9)~=0 or not validState(gameState) then
+    if memory.readbyte(0xF9)~=0 or not validState(gameState) then
         return 0xFF
     else
         return memory.readbyte(0x0400)
@@ -153,11 +174,11 @@ local function main()
 
     length = length + 1
     gameState = memory.readbyte(0x01FE)
+    animIndex = getAnimIndex()
 
     local xPos = memory.readbyte(0x460)
     local yPos = memory.readbyte(0x4A0)
-    local vySub = memory.readbyte(0x0660)
-    local animIndex = getAnimIndex()
+          vySub = memory.readbyte(0x0660)
     local weapon = memory.readbyte(0x00A9)
     local screen = memory.readbyte(0x0440)
     flipped = isFlipped()
@@ -185,9 +206,7 @@ local function main()
         flags = OR(flags, SCREEN_FLAG)
     end
     
-    -- TODO: also do this if lagging.
-    -- FIXME: This does not work at all. Actually check if up or down is being pressed.
-    if gameState==HEALTH_REFILL or isClimbing() and vySub==0 then
+    if isFrozen() then
         flags = OR(flags, HALT_FLAG)
     end
     

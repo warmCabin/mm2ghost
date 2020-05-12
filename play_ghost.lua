@@ -51,22 +51,30 @@ local function readByte(file)
 end
 
 -- arg is the literal string passed in the Arguments box, no space separation. (TODO: argparse?)
--- It can be null sometimes, even if you type something in. No idea why... You can fix this by
--- hitting restart. I give a different error message when this strange bug occurs.
+-- It can be nil sometimes, even if you type something in. No diea why. It really does get lost somewhere!
+-- You can fix this by hitting Restart.
 if not arg then
     print("Command line arguments got lost somehow :(")
     print("Please run this script again.")
     return
 end
 
--- if #arg==0 then
+-- TODO: put this in config
+local baseDir = "./ghosts"
+local path
 
-local ghost = loader.readGhost("./ghosts")
--- assert(ghost, string.format("\nCould not open ghost file \"%s\"", path))
-if not ghost then
-    print("No file selected.")
-    return
+if #arg > 0 then
+    path = arg
+else
+    path = loader.readGhost(baseDir)
+    if not path then
+        print("No file selected.")
+        return
+    end
 end
+
+local ghost = io.open(path, "rb")
+assert(ghost, string.format("\nCould not open ghost file \"%s\"", path))
 
 -- check for signature
 assert(ghost:read(4)=="mm2g", "\nInvalid or corrupt ghost file (missing signature).")
@@ -174,8 +182,7 @@ local function init()
     end    
 end
 
--- print(string.format("Loading \"%s\"...", path))
-print("Loading ghost data...")
+print(string.format("Loading \"%s\"...", path))
 init()
 print("Done.")
 
@@ -209,6 +216,7 @@ local scrollStartFrame = 0
 local scrollingUp = false
 local weapon = 0
 local prevSelect = false
+local iFrames = 0
 
 --[[
     This function is simple enough that it seems like it should be inline.
@@ -282,8 +290,6 @@ local function proximityCheck(data)
         -- scrolling down
         return drawY - drawYEmu == (data.screen*240 + data.yPos) - (screenEmu*240 + yPosEmu)
     end
-    
-    return true
 end
 
 -- Wrapping check based on the currently visible screen.
@@ -329,6 +335,8 @@ local function shouldDraw(data)
     
     if not checkWrap then return true end
     
+    -- gui.text(5, 10, "proximityCheck: "..tostring(proximityCheck(data)))
+    -- gui.text(5, 20, "drawScreenCheck: "..tostring(drawScreenCheck(data)))
     return proximityCheck(data) or drawScreenCheck(data)
 end
 
@@ -357,7 +365,8 @@ local function update()
     prevGameState = gameState
     scrlXEmu = memory.readbyte(0x1F)
     scrlYEmu = memory.readbyte(0x22)
-    gameState = memory.readbyte(0x01FE)  
+    gameState = memory.readbyte(0x01FE)
+    iFrames = memory.readbyte(0x4B)
     
     if gameState==SCROLLING and prevGameState~=SCROLLING then
         scrollStartFrame = emu.framecount()
@@ -377,7 +386,15 @@ local function update()
     -- Downwards scrolling needs a similar fixup, but upwards does not.
     
     -- TODO: split this out for sure. Can set the global screenEmu or return updated value.
-    if gameState==SCROLLING and scrollDuration >= 32 and scrollDuration <= 91 then
+    --   screenEmu = scrollFixup()
+    -- FIXME: This fails when scrolling backwards. Simply invert scrollingUp once you figure out how to detect that.
+    
+    -- Bottomless pit death shares the scrolling game state. But the iFrames variable is reused as a respawning flag,
+    -- so it can be used to distinguish between bottomless pits and scrolling.
+    -- There's an edge case, however: if your i-frames reach 1 on the exact frame you start to scroll,
+    -- this check will not properly set the screen number.
+    -- Standard enemy deaths are not a concern.
+    if gameState == SCROLLING and iFrames ~= 1 and scrollDuration >= 32 and scrollDuration <= 91 then
         if scrlXEmu==0 and scrlYEmu==0 then
             -- assume boss door for now
             screenEmu = screenEmu - 1
