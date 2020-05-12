@@ -188,14 +188,6 @@ print("Done.")
 print(string.format("Playing ghost on frame %d", emu.framecount()))
 print(string.format("%d frames of data", ghostLen))
 print()
-    
---[[
-    TODO: config.lua should contain:
-        [ ] Ghost directory, so user only specifies the name.
-        [O] screen offset X and Y
-        [O] "retro" (flickery) mode
-        [O] Enable wrapping
-]]
 
 local SCROLLING = 156
 local INVALID_STATES = {195, 247, 255, 78, 120}
