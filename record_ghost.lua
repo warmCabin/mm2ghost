@@ -44,11 +44,7 @@ local function writeByte(file, val)
     file:write(string.char(val))
 end
 
-if not arg then
-    print("Command line arguments got lost somehow :(")
-    print("Please run this script again.")
-    return
-end
+assert(arg, "Command line arguments got lost somehow :(\nPlease run this script again.")
 
 local VERSION = 3
 
@@ -79,7 +75,7 @@ else -- TODO: Have record.lua record to the same temp file every time?
     filename = os.date("%Y-%m-%d %H-%M-%S.ghost")
 end ]]
 
---local path = rootPath.."/"..filename
+-- local path = rootPath.."/"..filename
 
 local ghost = io.open(path, "wb")
 assert(ghost, "Could not open \""..path.."\"")
@@ -134,28 +130,15 @@ local function isClimbing()
 end
 
 --[[
-    Detects if Mega Man is flipped by scanning OAM for his face sprite.
-    There's some sort of flag at 0x42 that seems to store this data, but I don't trust it.
-    This OAM approach fails when Mega Man is:
-        - climbing a ladder (and not shooting)
-        - in the "splat" frame of his knockback animation
-        - teleporting
-    This function returns the last known value when Mega Man isn't on scren, which is acceptable
-    behavior for all three of these cases.
+    Previously, this function scanned OAM for Mega Man's face sprite and checked if it was flipped, like an idiot.
+    I cited this as my reason: "There's some sort of flag at 0x42 that seems to store this data, but I don't trust it."
+    
+    As it turns out, 0x42 is Mega Man's VELOCITY direction, so it would be inconsistent with the way he was facing
+    when taking damage or facing backwards on a moving platform.
+    0x0420 stores the actual facing direction, and it is trustworthy.
 ]]
 local function isFlipped()
-    
-    for addr = 0x200, 0x2FC, 4 do
-        local tile = memory.readbyte(addr + 1)
-        -- the 4 tiles for Mega Man's facial expressions
-        if tile==0x00 or tile==0x20 or tile==0x2E or tile==0x2F then
-            local attr = memory.readbyte(addr + 2)
-            return AND(attr, 0x40) ~= 0
-        end
-    end
-    
-    -- Mega Man's face is not on screen! Default to direction from previous frame.
-    return flipped 
+    return AND(memory.readbyte(0x0420), 0x40) ~= 0
 end
 
 
@@ -194,10 +177,10 @@ local function main()
     gameState = memory.readbyte(0x01FE)
     animIndex = getAnimIndex()
 
-    local xPos = memory.readbyte(0x460)
-    local yPos = memory.readbyte(0x4A0)
+    local xPos = memory.readbyte(0x0460)
+    local yPos = memory.readbyte(0x04A0)
           vySub = memory.readbyte(0x0660)
-    local weapon = memory.readbyte(0x00A9)
+    local weapon = memory.readbyte(0xA9)
     local screen = memory.readbyte(0x0440)
     flipped = isFlipped()
     

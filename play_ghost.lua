@@ -52,13 +52,9 @@ local function readByte(file)
 end
 
 -- arg is the literal string passed in the Arguments box, no space separation. (TODO: argparse?)
--- It can be nil sometimes, even if you type something in. No diea why. It really does get lost somewhere!
+-- It can be nil sometimes, even if you type something in. No idea why. It really does get lost somewhere!
 -- You can fix this by hitting Restart.
-if not arg then
-    print("Command line arguments got lost somehow :(")
-    print("Please run this script again.")
-    return
-end
+assert(arg, "Command line arguments got lost somehow :(\nPlease run this script again.")
 
 local path
 

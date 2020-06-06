@@ -3,7 +3,7 @@ require("iuplua")
 local mod = {}
 
 function mod.fixup(filename)
-    if filename:sub(filename:len() - 5) ~= ".ghost" then
+    if filename:sub(-5) ~= ".ghost" then
         filename = filename..".ghost"
     end
     return filename
