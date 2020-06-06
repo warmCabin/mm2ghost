@@ -63,7 +63,7 @@ end
 local path
 
 if #arg > 0 then
-    path = arg
+    path = loader.fixup(arg)
 else
     path = loader.readGhost(cfg.baseDir)
     if not path then
