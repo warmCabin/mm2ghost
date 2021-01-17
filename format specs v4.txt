@@ -1,0 +1,39 @@
+0x00-0x03: 4-byte signature: 6D 6D 32 67 ("mm2g")
+0x04-0x05: version number: 2-byte, unsigned, big-endian (should be 00 03)
+0x06-0x09: length: 4-byte, unsigned, big-endian
+
+Following this header is length frames of data.
+
+Each frame starts with 3 bytes:
+xPos yPos flags
+
+xPos:
+Mega Man's X position (pixels)
+yPos:
+Mega Man's Y position (pixels)
+
+Positions are given in the game world's coordinate space (as used for collision detection), as opposed to
+the screen space (as used for drawing). It is entirely unnecessary to store the scroll of either axis.
+	
+flags:
+7654 3210
+--BH CAWF
+││││ ││││
+││││ │││└─ Flipped: Whether Mega Man's sprite is flipped (facing right). Updates every frame.
+││││ ││└── Weapon: set when the currently equipped weapon changes. When this bit is 1,
+││││ ││      the index of the new weapon (1 byte) will follow, on the range [0,12].
+││││ │└─── Animation: Set when Mega Man's animation index changes. When this bit is 1,
+││││ │       the index of the new animation (1 byte) will follow. 0xFF is a sentinel value unused by
+││││ │       the game, which signifies no animation (Mega Man is offscreen, etc.) in this file.
+││││ └──── sCreen #: Set when Mega Man crosses over to a new screen. When this bit is 1,
+││││         the new screen number (1 byte) will follow. This value can be interpreted as the high
+││││         byte of Mega Man's X position.
+│││└────── Halt animation: If set, the animation timer should freeze during playback.
+││└──────  Begin stage: Set when a new stage is loaded. When this bit is 1, the stage number (1 byte)
+││           will follow.
+└┴──────── Unused. Set to 0 or I will kill you.
+	
+If multiple "extra byte" flags are set, their corresponding extra bytes will appear in order from least to most
+significant bit. i.e., Weapon, Animation, Screen #, Stage #.
+
+These flags essentially create an RLE compression scheme for important variables that don't change often.
