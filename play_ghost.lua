@@ -415,6 +415,8 @@ local function update()
     local yPos = data.yPos
     local screen = data.screen
     
+    if not shouldDraw(data) then return end
+    
     -- Unknown animation index! Draw an error squarror.
     if not anmData.image then
         local animIndex = anmData.animIndex
