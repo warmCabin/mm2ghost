@@ -79,7 +79,6 @@ assert(version <= 4, "\nThis ghost was created with a newer version of mm2ghost.
 assert(version >= 3, "\nThis ghost was made with an older version of mm2ghost and is no longer supported.")
 
 local ghostLen = readNumBE(ghost, 4)
-local ghostIndex = 0 -- keeps track of how many frames have actually been drawn
 
 local screenOffsetX = cfg.xOffset -- Offset all drawing by these values.
 local screenOffsetY = cfg.yOffset -- If your emulator behaves differently than mine,
@@ -106,7 +105,7 @@ local ghostData = {}
     Load the contents of the ghost file into memory. Ghost files RLE compress animIndex and weapon data, but this
     data is expanded in RAM. If we're loading savestates, we shouldn't have to scrub backwards to see where the
     animIndex was last changed. It's a space/time tradeoff.
-    Maybe I could do some kind of keyframe array or something.
+    Maybe I could do some kind of keyframe array or something. Apparently Braid did that.
     Perhaps a nifty data metatable could be used to some effect as well.
     
     This function parses v3 and v4 ghost files.
@@ -209,7 +208,6 @@ local gameState = 0
 local scrollStartFrame = 0
 local scrollingUp = false
 local weapon = 0
-local prevSelect = false
 local iFrames = 0
 
 --[[
@@ -253,6 +251,7 @@ local function getScreenY(yPos)
     
     -- Y position is signed...sort of. When Mega Man jumps off the top of the screen, it goes negative...i.e., Y=255
     -- But, readByteSigned is not a valid choice here, because Y >= 128 can also signify halfway down the screen...what to do???
+    -- 0xF9 (the off-screen flag, as seen in record_ghost.getAnimIndex()) could help.
     if y < 0 then
         y = y + 240
     end
@@ -336,8 +335,6 @@ local function shouldDraw(data)
     
     if not checkWrap then return true end
     
-    -- gui.text(5, 10, "proximityCheck: "..tostring(proximityCheck(data)))
-    -- gui.text(5, 20, "drawScreenCheck: "..tostring(drawScreenCheck(data)))
     return proximityCheck(data) or drawScreenCheck(data)
 end
 
@@ -420,21 +417,19 @@ local function update()
         startFrame = frameCount + 1
     end
     
-    -- gui.text(5,10,string.format("you:   %d:%d; state=%d, scrl=%d",screenEmu,yPosEmu,gameState,scrlYEmu))
-    
     local data = readData()
-    if not data then return end -- this frame is out of range of the ghost. Possibly put this check in shouldDraw
+    if not data then return end -- this frame is out of range of the ghost. Possibly put this check in shouldDraw.
     
     local anmData = anm.update(data)
     
     -- Mega Man not on screen this frame
     if anmData.noDraw then return end
     
-    if not shouldDraw(data) then return end
-    
     local xPos = data.xPos
     local yPos = data.yPos
     local screen = data.screen
+    
+    if not shouldDraw(data) then return end
     
     -- Unknown animation index! Draw an error squarror.
     if not anmData.image then
@@ -469,7 +464,7 @@ local function update()
     
     if retroMode then
         -- Create a retro-style flicker transparency!
-        if emu.framecount() % 3 ~= 0 then     --2 on, 1 off. This creates a pseudo-transparency of 0.67, which is close enough
+        if emu.framecount() % 3 ~= 0 then       --2 on, 1 off. This creates a pseudo-transparency of 0.67, which is close enough
             gui.image(drawX, drawY, image, 1.0) --to the 0.7 value used below.
         end
     else
