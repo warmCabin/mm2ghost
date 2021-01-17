@@ -177,7 +177,6 @@ local function main()
     prevGameState = gameState
     gameState = memory.readbyte(0x01FE)
     animIndex = getAnimIndex()
-    prevStageNum = stageNum
     stageNum = memory.readbyte(0x2A)
 
     local xPos = memory.readbyte(0x0460)
@@ -214,8 +213,13 @@ local function main()
         flags = OR(flags, HALT_FLAG)
     end
     
-    if prevGameState == LOADING and gameState == READY then
+    if prevGameState == LOADING and gameState == READY and prevStageNum ~= stageNum or length == 1 then
+        -- TODO: Ditch the length == 1 check. That way stage number is only recorded at the beginning
+        -- of the stage, and we can have a "floating ghost" with no stage num, not synced to the loading lag.
+        -- prevStage should probably reset when we see any menu screen.
+        prevStageNum = stageNum
         flags = OR(flags, STAGE_FLAG)
+        print(string.format("Loaded stage %d", stageNum))
     end
     
     writeByte(ghost, flags)
@@ -235,7 +239,7 @@ local function main()
         writeByte(ghost, screen)
     end
     
-    if prevGameState == LOADING and gameState == READY then
+    if AND(flags, STAGE_FLAG) ~= 0 then
         writeByte(ghost, stageNum)
     end
     
