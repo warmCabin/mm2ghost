@@ -98,6 +98,7 @@ local WEAPON_FLAG = 2
 local ANIM_FLAG = 4
 local SCREEN_FLAG = 8
 local HALT_FLAG = 16
+local STAGE_FLAG = 32
 
 local ghostData = {}
 
@@ -116,6 +117,9 @@ local function init()
     local curWeapon = 0
     local curAnimIndex = 0xFF
     local curScreen
+    local curStage = memory.readbyte(0x2A)
+    
+    local dataIndex = 0
     
     for i = 1, ghostLen do
     
@@ -155,8 +159,27 @@ local function init()
             data.halt = true
         end
         
-        -- TODO: Just use i+1. Would enable dynamic changing of startFrame.
-        ghostData[startFrame + i - 1] = data
+        if AND(flags, STAGE_FLAG) ~= 0 then             
+            data.stage = readByte(ghost)
+            -- if data.stage ~= curStage then
+                -- This might get set if the player dies in a stage.
+                curStage = data.stage
+                dataIndex = 0
+            -- end
+            if not ghostData[curStage] then
+                ghostData[curStage] = {}
+            end
+        else
+            data.stage = curStage
+        end
+        
+        if not ghostData[curStage] then
+            ghostData[curStage] = {}
+            -- something something why wasn't the flag set
+        end
+        
+        ghostData[curStage][dataIndex] = data
+        dataIndex = dataIndex + 1
     end    
 end
 
@@ -180,6 +203,7 @@ local prevScrlXEmu = 0
 local scrlXEmu = 0
 local prevScrlYEmu = 0
 local scrlYEmu = 0
+local stageEmu = 0
 local prevGameState = 0
 local gameState = 0
 local scrollStartFrame = 0
@@ -196,17 +220,24 @@ local iFrames = 0
 ]]
 local function readData()
     
-    local fc = emu.framecount()
-    if fc < startFrame or fc >= startFrame+ghostLen then
+    if not ghostData[stageEmu] then
         return nil
     end
     
-    if fc > startFrame then
-        prevScrlGhost = ghostData[fc-1].scrl
-    end
-    ghostData[fc].screen = ghostData[fc].screen or memory.readbyte(0x0440)
-    return ghostData[fc]
+    -- TODO: a startFrame for each stage, for ease of panning
+    local i = emu.framecount() - startFrame
+    local data = ghostData[stageEmu][i]
     
+    if not data then
+        -- This frame is out of range for the current stage.
+        return nil
+    end
+    
+    if i > 0 then
+        prevScrlGhost = ghostData[stageEmu][i - 1].scrl
+    end
+    
+    return data
 end
 
 -- Determines the screen X coordinate from the given world coordinate, based on the current scroll value.
@@ -337,6 +368,7 @@ local function update()
     scrlYEmu = memory.readbyte(0x22)
     gameState = memory.readbyte(0x01FE)
     iFrames = memory.readbyte(0x4B)
+    stageEmu = memory.readbyte(0x2A)
     
     if gameState==SCROLLING and prevGameState~=SCROLLING then
         scrollStartFrame = emu.framecount()
@@ -379,10 +411,13 @@ local function update()
         end
     end
     
-    ghostIndex = emu.framecount() - startFrame
-    
-    if ghostIndex==ghostLen then
-        print("Ghost finished playing on frame "..emu.framecount()..".")
+    -- TODO: game state constants
+    if prevGameState == 255 and gameState == 82 then
+        -- TODO: Check if we're loading the same stage we loaded previously.
+        -- That would indicate a death, meaning the ghost should NOT be reloaded.
+        -- (Certain speedrun strats involve taking an intentional death)
+        print("Loaded stage "..stageEmu)
+        startFrame = frameCount + 1
     end
     
     -- gui.text(5,10,string.format("you:   %d:%d; state=%d, scrl=%d",screenEmu,yPosEmu,gameState,scrlYEmu))
