@@ -75,7 +75,8 @@ assert(ghost, string.format("\nCould not open ghost file \"%s\"", path))
 assert(ghost:read(4)=="mm2g", "\nInvalid or corrupt ghost file (missing signature).")
 
 local version = readNumBE(ghost, 2)
-assert(version <= 3, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version from https://github.com/warmCabin/mm2ghost/releases")
+assert(version <= 4, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version from https://github.com/warmCabin/mm2ghost/releases")
+assert(version >= 3, "\nThis ghost was made with an older version of mm2ghost and is no longer supported.")
 
 local ghostLen = readNumBE(ghost, 4)
 local ghostIndex = 0 -- keeps track of how many frames have actually been drawn
@@ -98,11 +99,6 @@ local ANIM_FLAG = 4
 local SCREEN_FLAG = 8
 local HALT_FLAG = 16
 
-if version < 2 then
-    print("This ghost does not contain screen information. Screen wrapping enabled.")
-    checkWrap = false
-end
-
 local ghostData = {}
 
 --[[
@@ -112,8 +108,7 @@ local ghostData = {}
     Maybe I could do some kind of keyframe array or something.
     Perhaps a nifty data metatable could be used to some effect as well.
     
-    This function can properly parse v0-v3 ghost files. Anything below v2 is considered deprcated, because this
-    function is already getting pretty messy!
+    This function parses v3 and v4 ghost files.
 ]]
 local function init()
     
@@ -128,16 +123,6 @@ local function init()
     
         data.xPos = readByte(ghost)
         data.yPos = readByte(ghost)
-        
-        if version <= 1 then
-            -- X scroll was uselessly stored in versions 0 and 1; read and discard it
-            readByte(ghost)
-        end
-        
-        if version == 0 then
-            -- animIndex was stored for every frame in version 0
-            data.animIndex = readByte(ghost)
-        end
         
         local flags = readByte(ghost)
         
@@ -156,15 +141,13 @@ local function init()
             data.animIndex = readByte(ghost)
             curAnimIndex = data.animIndex
         else
-            -- default to curAnimIndex if data.animIndex isn't present, which it won't be in v2+
-            data.animIndex = data.animIndex or curAnimIndex
+            data.animIndex = curAnimIndex
         end
         
         if AND(flags, SCREEN_FLAG) ~= 0 then
             data.screen = readByte(ghost)
             curScreen = data.screen
         else
-            -- curScreen will always remain nil in versions before 2
             data.screen = curScreen
         end
         
