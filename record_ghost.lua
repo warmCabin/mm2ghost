@@ -46,7 +46,7 @@ end
 
 assert(arg, "Command line arguments got lost somehow :(\nPlease run this script again.")
 
-local VERSION = 3
+local VERSION = 4
 
 local path
 
@@ -86,6 +86,7 @@ ghost:write("mm2g") -- signature
 writeNumBE(ghost, VERSION, 2) -- 2-byte version
 writeNumBE(ghost, 0, 4) -- 4-byte length. This gets written later.
 
+local prevGameState
 local gameState = 0
 local flipped = true
 local prevWeapon = 0
@@ -94,6 +95,8 @@ local prevAnimIndex = 0xFF
 local vySub = 0
 local prevScreen = -1
 local length = 0
+local stageNum
+local prevStageNum
 
 local PLAYING = 178
 local BOSS_RUSH = 100
@@ -109,6 +112,7 @@ local BOSS_KILL = 143
 local DOUBLE_DEATH = 134 -- It's a different gamestate somehow!!
 local DOUBLE_DEATH2 = 146 -- ???
 local WILY_KILL = 65 -- basically BOSS_KILL
+local LOADING = 255
 
 -- TODO: invalid states??? {PAUSED, DEAD, MENU, READY}
 local validStates = {PLAYING, BOSS_RUSH, LAGGING, HEALTH_REFILL, MENU, BOSS_KILL, LAGGING2, DOUBLE_DEATH, DOUBLE_DEATH2, WILY_KILL, LAGGING3}
@@ -143,11 +147,6 @@ end
 
 
 local function isFrozen()
-    
-    --gui.text(5, 10, "isClimbing: "..tostring(isClimbing()))
-    --gui.text(5, 20, "vySub = "..tostring(vySub))
-    --gui.text(5,30, "joypad check: "..tostring(not (joypad.get(1).up or joypad.get(1).down)))
-    
     for _, state in ipairs(freezeStates) do
         if gameState==state then return true end
     end
@@ -170,12 +169,16 @@ local WEAPON_FLAG = 2
 local ANIM_FLAG = 4
 local SCREEN_FLAG = 8
 local HALT_FLAG = 16
+local STAGE_FLAG = 32
 
 local function main()
 
     length = length + 1
+    prevGameState = gameState
     gameState = memory.readbyte(0x01FE)
     animIndex = getAnimIndex()
+    prevStageNum = stageNum
+    stageNum = memory.readbyte(0x2A)
 
     local xPos = memory.readbyte(0x0460)
     local yPos = memory.readbyte(0x04A0)
@@ -211,6 +214,10 @@ local function main()
         flags = OR(flags, HALT_FLAG)
     end
     
+    if prevGameState == LOADING and gameState == READY then
+        flags = OR(flags, STAGE_FLAG)
+    end
+    
     writeByte(ghost, flags)
     
     -- It kills me, but we have to make these checks twice. Maybe I could write a little buffer or something.
@@ -226,6 +233,10 @@ local function main()
     
     if screen ~= prevScreen then
         writeByte(ghost, screen)
+    end
+    
+    if prevGameState == LOADING and gameState == READY then
+        writeByte(ghost, stageNum)
     end
     
     prevWeapon = weapon
