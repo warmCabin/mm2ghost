@@ -1,9 +1,10 @@
+!ghosts/
+
+ghosts/*
+!ghosts/sample
 
 ghost plans.txt
 ghost readme.txt
-ghosts/*.ghost
-ghosts/old
-ghosts/any%
 play_ghost_delaytest.lua
 record_ghost_old.lua
 v0ifier.lua
