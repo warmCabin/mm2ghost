@@ -35,51 +35,10 @@ setmetatable(cfg, {__index = {
     baseDir = "./ghosts"
 }})
 
--- Read number Big-endian
-local function readNumBE(file, length)
-    assert(length <= 8, "Read operation will overflow.")
-    local ans = 0
-    for i = 1, length do
-        ans = ans*256 + file:read(1):byte()
-    end
-    return ans
-end
-
--- Read byte or crash. I prefer this to littering my code with asserts.
-local function readByte(file)
-    local str = file:read(1)
-    assert(str, "File ended unexpectedly!")
-    return str:byte()
-end
-
 -- arg is the literal string passed in the Arguments box, no space separation. (TODO: argparse?)
 -- It can be nil sometimes, even if you type something in. No idea why. It really does get lost somewhere!
 -- You can fix this by hitting Restart.
 assert(arg, "Command line arguments got lost somehow :(\nPlease run this script again.")
-
-local path
-
-if #arg > 0 then
-    path = loader.fixup(arg)
-else
-    path = loader.readGhost(cfg.baseDir)
-    if not path then
-        print("No file selected.")
-        return
-    end
-end
-
-local ghost = io.open(path, "rb")
-assert(ghost, string.format("\nCould not open ghost file \"%s\"", path))
-
--- check for signature
-assert(ghost:read(4)=="mm2g", "\nInvalid or corrupt ghost file (missing signature).")
-
-local version = readNumBE(ghost, 2)
-assert(version <= 4, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version from https://github.com/warmCabin/mm2ghost/releases")
-assert(version >= 3, "\nThis ghost was made with an older version of mm2ghost and is no longer supported.")
-
-local ghostLen = readNumBE(ghost, 4)
 
 local screenOffsetX = cfg.xOffset -- Offset all drawing by these values.
 local screenOffsetY = cfg.yOffset -- If your emulator behaves differently than mine,
@@ -100,96 +59,7 @@ local SCREEN_FLAG = 8
 local HALT_FLAG = 16
 local STAGE_FLAG = 32
 
-local ghostData = {}
-
---[[
-    Load the contents of the ghost file into memory. Ghost files RLE compress animIndex and weapon data, but this
-    data is expanded in RAM. If we're loading savestates, we shouldn't have to scrub backwards to see where the
-    animIndex was last changed. It's a space/time tradeoff.
-    Maybe I could do some kind of keyframe array or something. Apparently Braid did that.
-    Perhaps a nifty data metatable could be used to some effect as well.
-    
-    This function parses v3 and v4 ghost files.
-]]
-local function init()
-    
-    -- These "cur" values are used to un-RLE the ghost data.
-    local curWeapon = 0
-    local curAnimIndex = 0xFF
-    local curScreen
-    local curStage = memory.readbyte(0x2A)
-    
-    local dataIndex = 0
-    
-    for i = 1, ghostLen do
-    
-        local data = {}
-    
-        data.xPos = readByte(ghost)
-        data.yPos = readByte(ghost)
-        
-        local flags = readByte(ghost)
-        
-        if AND(flags, FLIP_FLAG) ~= 0 then
-            data.flipped = true
-        end
-        
-        if AND(flags, WEAPON_FLAG) ~= 0 then
-            data.weapon = readByte(ghost)
-            curWeapon = data.weapon
-        else
-            data.weapon = curWeapon
-        end
-        
-        if AND(flags, ANIM_FLAG) ~= 0 then
-            data.animIndex = readByte(ghost)
-            curAnimIndex = data.animIndex
-        else
-            data.animIndex = curAnimIndex
-        end
-        
-        if AND(flags, SCREEN_FLAG) ~= 0 then
-            data.screen = readByte(ghost)
-            curScreen = data.screen
-        else
-            data.screen = curScreen
-        end
-        
-        if AND(flags, HALT_FLAG) ~= 0 then
-            data.halt = true
-        end
-        
-        if AND(flags, STAGE_FLAG) ~= 0 then             
-            data.stage = readByte(ghost)
-            -- if data.stage ~= curStage then
-                -- This might get set if the player dies in a stage.
-                curStage = data.stage
-                dataIndex = 0
-            -- end
-            if not ghostData[curStage] then
-                ghostData[curStage] = {}
-            end
-        else
-            data.stage = curStage
-        end
-        
-        if not ghostData[curStage] then
-            ghostData[curStage] = {}
-            -- something something why wasn't the flag set
-        end
-        
-        ghostData[curStage][dataIndex] = data
-        dataIndex = dataIndex + 1
-    end    
-end
-
-print(string.format("Loading \"%s\"...", path))
-init()
-print("Done.")
-
-print(string.format("Playing ghost on frame %d", emu.framecount()))
-print(string.format("%d frames of data", ghostLen))
-print()
+print(string.format("Initiating cosmic clone on frame %d", emu.framecount()))
 
 local SCROLLING = 156
 local PLAYING = 178
@@ -231,13 +101,13 @@ local cosmicOffset = 90
 
 local cloneData = {}
 
--- TODO: make this boss fight and pause aware
 local function readData()
     if gameState == PAUSED or gameState == HEALTH_REFILL then
         -- Shift everything ahead by 1 frame
         for i = emu.framecount(), emu.framecount() - cosmicOffset, -1 do
             cloneData[i] = cloneData[i - 1]
         end
+        -- Show the ghost frozen in place if this is a health refill. Otherwise hide it.
         if gameState == HEALTH_REFILL then
             local data = cloneData[emu.framecount() - cosmicOffset + 1]
             data.halt = true
@@ -249,34 +119,6 @@ local function readData()
         return cloneData[emu.framecount() - cosmicOffset]
     end
 end
-
---[[
-    This function is simple enough that it seems like it should be inline.
-    BUT! I have plans to make an online mode that reads straight from the file
-    and doesn't support savestates, like it used to. Just in case memory usage
-    gets out of hand. That behavior will be handled in this function.
-]]
--- local function readData()
-    
-    -- if not ghostData[stageEmu] then
-        -- return nil
-    -- end
-    
-    -- TODO: a startFrame for each stage, for ease of panning
-    -- local i = emu.framecount() - startFrame
-    -- local data = ghostData[stageEmu][i]
-    
-    -- if not data then
-        -- This frame is out of range for the current stage.
-        -- return nil
-    -- end
-    
-    -- if i > 0 then
-        -- prevScrlGhost = ghostData[stageEmu][i - 1].scrl
-    -- end
-    
-    -- return data
--- end
 
 -- Determines the screen X coordinate from the given world coordinate, based on the current scroll value.
 -- Cool bitwise stuff stolen from mm2_minimap.lua!
@@ -393,10 +235,7 @@ local function validState(gameState)
 end
 
 --[[
-    In preparation for the multighost update:
-        - much of this should stay in a general update function
-        - much of this can go in an individual ghost update function. Might be tricky with all these pesky local variables.
-        - can specify multiple ghosts by separating paths w/ semicolon
+    Will most likely scrap all of this as I work on the multighost update.
 ]]
 local function update()
 
@@ -434,7 +273,8 @@ local function update()
     end
     
     -- Remove clone data we no longer need.
-    cloneData[emu.framecount() - cosmicOffset - 1] = nil -- Lua, you BETTER have garbage collection.
+    -- Lua, you BETTER have garbage collection.
+    cloneData[emu.framecount() - cosmicOffset - 1] = nil
     
     if gameState==SCROLLING and prevGameState~=SCROLLING then
         scrollStartFrame = emu.framecount()
@@ -477,17 +317,8 @@ local function update()
         end
     end
     
-    -- TODO: game state constants
-    if prevGameState == 255 and gameState == 82 then
-        -- TODO: Check if we're loading the same stage we loaded previously.
-        -- That would indicate a death, meaning the ghost should NOT be reloaded.
-        -- (Certain speedrun strats involve taking an intentional death)
-        print("Loaded stage "..stageEmu)
-        startFrame = frameCount + 1
-    end
-    
     local data = readData()
-    if not data then return end -- this frame is out of range of the ghost. Possibly put this check in shouldDraw.
+    if not data then return end -- The clone is watching and waiting.
     
     local anmData = anm.update(data)
     
@@ -499,8 +330,6 @@ local function update()
     local screen = data.screen
     
     if not shouldDraw(data) then return end
-    
-    
     
     -- Unknown animation index! Draw an error squarror.
     if not anmData.image then
@@ -522,21 +351,14 @@ local function update()
     
     local drawX    = getScreenX(xPos)    + offsetX + screenOffsetX
     local drawXEmu = getScreenX(xPosEmu) + offsetX + screenOffsetX
-    
-    -- gui.text(5,20,string.format("ghost: %d:%d",screen,drawX))
-    
     local drawY    = getScreenY(yPos)    + offsetY + screenOffsetY
     local drawYEmu = getScreenY(yPosEmu) + offsetY + screenOffsetY
-    -- gui.text(0,10,"drawY: "..drawY)
-    -- gui.text(0,30,"yScrlDraw: "..yScrlDraw)
-    -- gui.text(0,40,"yPos: "..yPos)
- 
-    -- gui.text(5,40,"drawY after: "..drawY)
     
     if collides(drawX, drawY, 12, 16, drawXEmu, drawYEmu, 12, 16) then
-        local success = dmg.takeDamage(8)
-        print("Tried to take damage. Success: "..tostring(success))
-        if success then
+        if dmg.takeDamage(8) and memory.readbyte(0x06C0) ~= 0 then
+            -- Set facing direction to the opposite of the ghost, just like in-game enemies.
+            -- "Flipped" in this script is inverted from what the game considers "flipped,"
+            -- because I hadn't reverse engineered the sprite flags yet. Tech debt!
             local flags = memory.readbyte(0x0420)
             flags = AND(flags, 0xBF)
             if not data.flipped then
@@ -566,15 +388,3 @@ local function main()
     end
 end
 gui.register(main)
-
-local function hideButton()
-    showGhost = not showGhost
-end
-taseditor.registermanual(hideButton, "Show/Hide Ghost")
-
-emu.registerexit(function()
-    print("Ghosts...")
-    print("...don't...")
-    print("...DIE!")
-    ghost:close() -- They do get closed, though!
-end)
