@@ -186,7 +186,7 @@ print(string.format("%d frames of data", ghostLen))
 print()
 
 local SCROLLING = 156
-local INVALID_STATES = {195, 247, 255, 78, 120}
+local INVALID_STATES = {195, 247, 255, 78, 120, 197}
 
 local xPosEmu
 local yPosEmu
@@ -210,6 +210,8 @@ local iFrames = 0
     BUT! I have plans to make an online mode that reads straight from the file
     and doesn't support savestates, like it used to. Just in case memory usage
     gets out of hand. That behavior will be handled in this function.
+    
+    TODO: Could add some logic for the mecha dragon weirdo autoscroll.
 ]]
 local function readData()
     
