@@ -17,7 +17,7 @@ the screen space (as used for drawing). It is entirely unnecessary to store the 
 	
 flags:
 7654 3210
---BH CAWF
+-MBH CAWF
 ││││ ││││
 ││││ │││└─ Flipped: Whether Mega Man's sprite is flipped (facing right). Updates every frame.
 ││││ ││└── Weapon: set when the currently equipped weapon changes. When this bit is 1,
@@ -29,9 +29,13 @@ flags:
 ││││         the new screen number (1 byte) will follow. This value can be interpreted as the high
 ││││         byte of Mega Man's X position.
 │││└────── Halt animation: If set, the animation timer should freeze during playback.
-││└──────  Begin stage: Set when a new stage is loaded. When this bit is 1, the stage number (1 byte)
+││└─────── Begin stage: Set when a new stage is loaded. When this bit is 1, the stage number (1 byte)
 ││           will follow.
-└┴──────── Unused. Set to 0 or I will kill you.
+│└──────── Menu: Indicates the ghost is in a menu (pause, get equipped, etc.) and no data should be
+│            read for a while. A 2-byte, big-endian length will follow; this is how many frames to wait
+│            before reading more ghost data. This is different from an animation index of 0xFF in that
+│            no flags, X, or Y will be written.
+└───────── Unused. Set to 0 or I will kill you.
 	
 If multiple "extra byte" flags are set, their corresponding extra bytes will appear in order from least to most
 significant bit. i.e., Weapon, Animation, Screen #, Stage #.
