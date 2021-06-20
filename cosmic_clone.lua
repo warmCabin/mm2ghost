@@ -213,6 +213,14 @@ local function shouldDraw(data)
         if gameState==state then return false end
     end
     
+    -- local action = memory.readbyte(0x2C)
+    -- local scrollFlags = memory.readbyte(0x1B)
+    
+    -- Check if sprites should have disappeared during a screen scroll
+    -- if gameState == SCROLLING and AND(scrollFlags, 2) == 0 and action ~= 0 and action ~= 1 then
+    --     return false
+    -- end
+    
     if not showGhost then return false end
     
     if not checkWrap then return true end
