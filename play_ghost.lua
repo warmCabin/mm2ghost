@@ -45,7 +45,9 @@ local function readNumBE(file, length)
     assert(length <= 8, "Read operation will overflow.")
     local ans = 0
     for i = 1, length do
-        ans = ans*256 + file:read(1):byte()
+        local chr = file:read(1)
+        assert(chr, "File ended unexpectedly!")
+        ans = ans*256 + chr:byte()
     end
     return ans
 end
@@ -80,11 +82,14 @@ assert(ghost, string.format("\nCould not open ghost file \"%s\"", path))
 -- check for signature
 assert(ghost:read(4)=="mm2g", "\nInvalid or corrupt ghost file (missing signature).")
 
+-- Version 3 is acceptable because version 4 only adds things to the spec.
 local version = readNumBE(ghost, 2)
 assert(version <= 4, "\nThis ghost was created with a newer version of mm2ghost.\nPlease download the latest version from https://github.com/warmCabin/mm2ghost/releases")
 assert(version >= 3, "\nThis ghost was made with an older version of mm2ghost and is no longer supported.")
 
 local ghostLen = readNumBE(ghost, 4)
+
+assert(ghostLen > 0, "Ghost data is invalid. Did record_ghost.lua terminate properly?")
 
 local screenOffsetX = cfg.xOffset -- Offset all drawing by these values.
 local screenOffsetY = cfg.yOffset -- If your emulator behaves differently than mine,

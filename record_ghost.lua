@@ -41,6 +41,7 @@ local function assert(condition, message)
 end
 
 local function writeNumBE(file, val, length)
+    -- TODO: overflow checks.
     for i = length-1, 0, -1 do
         file:write(string.char(band(rshift(val, i*8), 0xFF))) -- Lua makes binary file I/O such a pain.
         -- file.write( (val>>(i<<3)) & 0xFF ) -- How things could be. How they SHOULD be.
