@@ -124,12 +124,12 @@ a boss fight, but that may be a bit excessive for smaller segments.
 
 ## Sample Ghosts
 
-**These are currently outdated! I need to update these!**
+I've provided a few sample ghosts for you to enjoy, all based on various TASes.  
+* any%\_2021 - Any% TAS from 2021 by Shinryuu
+* zipless\_2019 - Zipless TAS from 2019 by me
+* bonly\_8robos - Buster only WIP by me
 
-I've provided a few sample ghosts for you to enjoy. They are all stages from various TASes. The Any% TAS from 2010 was done by
-shinryuu, aglasscage, finalfighter, and pirohiko. The Buster Only (bonly) and Zipless categories are from WIPs by me.  
-Each ghost starts at the [one frame of garbage](https://cdn.discordapp.com/attachments/404188813359972352/552398101973958686/Rockman_2_-_Dr._Wily_no_Nazo_Japan-132.png) at the beginning of its respective stage. Again, just frame advance during the black loading
-screen and you'll find it.  
+Load the ghost at any time and it will sync up with you as you load each stage.  
 Using zips and full items, you could possibly complete some stages faster than the zipless or buster-only ghosts. Give it a try!
 
 
