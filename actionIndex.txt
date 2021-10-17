@@ -1,0 +1,16 @@
+Action is at 0x2C.
+animIndex is more informative for the purposes of a ghost,
+but this information can be useful too.
+
+00 - Teleporting in/dying/exploding
+01 - bottomless pit death
+02 - knockback
+03 - standing still
+04 - tiptoe
+05 - running
+06 - jumping
+07 - skidding to a stop
+08 - landing
+09 - Climbing ladder
+0A - Ladder top (ass)
+0B - teleporting out
