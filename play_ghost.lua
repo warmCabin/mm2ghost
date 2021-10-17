@@ -117,9 +117,10 @@ local ghostData = {}
     Load the contents of the ghost file into memory. Ghost files RLE compress animIndex and weapon data, but this
     data is expanded in RAM. If we're loading savestates, we shouldn't have to scrub backwards to see where the
     animIndex was last changed. It's a space/time tradeoff.
-    Maybe I could do some kind of keyframe array or something. Apparently Braid did that.
+
+    Maybe I could do some kind of keyframe array or something. Apparetly Braid did that.
     Perhaps a nifty data metatable could be used to some effect as well.
-    
+
     This function parses v3 and v4 ghost files.
 ]]
 local function init()

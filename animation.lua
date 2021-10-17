@@ -165,31 +165,34 @@ flip[0x01][2] = ...
 ...
 ]]
 
-local palettes = {} -- outline, undies, body
-palettes[0]  = {{r=0, g=0, b=0}, {r=0, g=112, b=236}, {r=0, g=232, b=216}}     -- P
-palettes[1]  = {{r=0, g=0, b=0}, {r=228, g=0, b=88}, {r=240, g=188, b=60}}     -- H
-palettes[2]  = {{r=0, g=0, b=0}, {r=0, g=112, b=236}, {r=252, g=252, b=252}}   -- A
-palettes[3]  = {{r=0, g=0, b=0}, {r=0, g=148, b=0}, {r=252, g=252, b=252}}     -- W
-palettes[4]  = {{r=0, g=0, b=0}, {r=116, g=116, b=116}, {r=252, g=252, b=252}} -- B
-palettes[5]  = {{r=0, g=0, b=0}, {r=252, g=116, b=180}, {r=252, g=196, b=252}} -- Q
-palettes[6]  = {{r=0, g=0, b=0}, {r=188, g=0, b=188}, {r=252, g=196, b=252}}   -- F
-palettes[7]  = {{r=0, g=0, b=0}, {r=136, g=112, b=0}, {r=252, g=216, b=168}}   -- M
-palettes[8]  = {{r=0, g=0, b=0}, {r=252, g=116, b=96}, {r=252, g=252, b=252}}  -- C
-palettes[9]  = {{r=0, g=0, b=0}, {r=216, g=40, b=0}, {r=252, g=252, b=252}}    -- 1
-palettes[10] = palettes[9]                                                     -- 2
-palettes[11] = palettes[9]                                                     -- 3
+-- Stored as NES palette indexes so ghost colors will match your settings.
+local palettes = {} -- outline, body, undies
+palettes[0]  = {"P0F", "P2C", "P11"} -- P
+palettes[1]  = {"P0F", "P28", "P15"} -- H
+palettes[2]  = {"P0F", "P30", "P11"} -- A
+palettes[3]  = {"P0F", "P30", "P19"} -- W
+palettes[4]  = {"P0F", "P30", "P00"} -- B
+palettes[5]  = {"P0F", "P34", "P25"} -- Q
+palettes[6]  = {"P0F", "P34", "P14"} -- F
+palettes[7]  = {"P0F", "P37", "P18"} -- M
+palettes[8]  = {"P0F", "P30", "P26"} -- C
+palettes[9]  = {"P0F", "P30", "P16"} -- 1
+palettes[10] = palettes[9]           -- 2
+palettes[11] = palettes[9]           -- 3
 
 mod.palettes = palettes
 
 --[[
     Convert a blue & cyan Mega Man image to the appropriate weapon palette.
-    The GD string format used by FCEUX actually has a paletteized mode...but FCEUX
-    doesn't support it for whatever asinine reason.
-    Remind me to actually verify that, though...
+    The GD string format used by FCEUX actually has a paletteized mode...
+    The docs claim it's not supported but there's code to parse it.
+    I don't know WHAT to believe!
     
     This code checks for the specific RGB values in the Mega Man images I use.
     Actually, it only checks for the specific G values!
     Run this on other images for unpredictable results!
+    
+    TODO: PRECOMP OR CACHE THESE!!! This processes 2KB of data 60 times a second!!
 ]]
 local function paletteize(gdStr, pIndex)
 
@@ -216,28 +219,28 @@ local function paletteize(gdStr, pIndex)
             local r = gdStr:byte(12 + i*width*4 + j*4 + 1)
             local g = gdStr:byte(12 + i*width*4 + j*4 + 2)
             local b = gdStr:byte(12 + i*width*4 + j*4 + 3)
-            buff[bi] = a
             
             if g==112 then
                 -- blue undies
-                buff[bi + 1] = pal[2].r
-                buff[bi + 2] = pal[2].g
-                buff[bi + 3] = pal[2].b
+                r, g, b = gui.parsecolor(pal[3])
             elseif g==232 then
                 -- cyan body
-                buff[bi + 1] = pal[3].r
-                buff[bi + 2] = pal[3].g
-                buff[bi + 3] = pal[3].b
+                r, g, b = gui.parsecolor(pal[2])
             elseif g==0 then
-                -- outline
-                buff[bi + 1] = pal[1].r
-                buff[bi + 2] = pal[1].g
-                buff[bi + 3] = pal[1].b
-            else
-                buff[bi + 1] = r
-                buff[bi + 2] = g
-                buff[bi + 3] = b
+                -- black outline
+                r, g, b = gui.parsecolor(pal[1])
+            elseif g==228 then
+                -- skin color
+                r, g, b = gui.parsecolor("P38")
+            elseif g==252 then
+                -- white eyes
+                r, g, b = gui.parsecolor("P20")
             end
+            
+            buff[bi]     = a
+            buff[bi + 1] = r
+            buff[bi + 2] = g
+            buff[bi + 3] = b
             
             bi = bi + 4 -- table.insert is O(N). This isn't!
         end
@@ -312,11 +315,7 @@ function mod.update(data)
     end
     
     -- Does this copy the whole string over?
-    local img = animTable[animIndex][animFrame][1]
-    if weapon ~= 0 then
-        -- TODO: PRECOMP THESE!!! This processes 2KB of data 60 times a second!!
-        img = paletteize(img, weapon)
-    end
+    local img = paletteize(animTable[animIndex][animFrame][1], weapon)
     
     local offsetX = animTable[animIndex][animFrame][2]
     local offsetY = animTable[animIndex][animFrame][3]
