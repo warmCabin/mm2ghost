@@ -54,19 +54,16 @@ local function flipGD(gdStr)
     local width  = gdStr:byte(3)*256 + gdStr:byte(4)
     local height = gdStr:byte(5)*256 + gdStr:byte(6)
     local buff = {}
-    local bi = 12
+    local bi = 1038
     
-    for i = 1, 11 do -- Copy the header over indiscriminately
+    for i = 1, 1037 do -- Copy over the header and palette indiscriminately
         buff[i] = gdStr:byte(i)
     end
     
     for i = 0, height-1 do    -- Real programmers index their shit by 0, dammit!
         for j = 0, width-1 do -- The math works out so nice!
-            buff[bi]   = gdStr:byte(12 + i*width*4 + (width-j-1)*4) 
-            buff[bi + 1] = gdStr:byte(12 + i*width*4 + (width-j-1)*4 + 1)
-            buff[bi + 2] = gdStr:byte(12 + i*width*4 + (width-j-1)*4 + 2)
-            buff[bi + 3] = gdStr:byte(12 + i*width*4 + (width-j-1)*4 + 3)
-            bi = bi + 4 -- table.insert is O(N). This isn't!
+            buff[bi] = gdStr:byte(1038 + i * width + (width - j - 1))
+            bi = bi + 1
         end
     end
     
@@ -91,7 +88,7 @@ local climb = readGD("mmframes/climb.gd")
     See animIndex.txt for a concise list of what each index represents.
 ]]
 local anim = {}
-anim[0x00] = {{readGD("mmframes/standing.gd"), 0, 0, 91}, {readGD("mmframes/blinking.gd"), 4, 0, 9}}
+anim[0x00] = {{readGD("mmframes/standing.gd"), 0, 0, 91}, {readGD("mmframes/blinking.gd"), 4, 0, 9}} -- TODO: 90/10!?
 anim[0x01] = {{readGD("mmframes/standnshoot.gd"), 4, 0}}
 anim[0x03] = {{readGD("mmframes/standnthrow.gd"), 4, 0}} 
 anim[0x04] = {{readGD("mmframes/tiptoe.gd"), 4, 0}}
@@ -203,6 +200,8 @@ mod.palettes = palettes
 ]]
 local function paletteize(gdStr, pIndex)
 
+    print("input length: "..#gdStr)
+
     local pal = palettes[pIndex]
     if not pal then
         -- TODO: Make an on-screen queue or something. No more hardcoded coordinates.
@@ -211,50 +210,36 @@ local function paletteize(gdStr, pIndex)
         return gdStr
     end
     
-    local width  = gdStr:byte(3)*256 + gdStr:byte(4)
-    local height = gdStr:byte(5)*256 + gdStr:byte(6)
-    local buff = {}
-    local bi = 12
+    local paletteBytes = {}
+                                
+    paletteBytes[1],  paletteBytes[2],  paletteBytes[3],  paletteBytes[4]  = gui.parsecolor(pal[3]) -- blue undies
+    paletteBytes[5],  paletteBytes[6],  paletteBytes[7],  paletteBytes[8]  = gui.parsecolor(pal[2]) -- cyan body
+    paletteBytes[9],  paletteBytes[10], paletteBytes[11], paletteBytes[12] = gui.parsecolor(pal[1]) -- black outline
+    paletteBytes[13], paletteBytes[14], paletteBytes[15], paletteBytes[16] = gui.parsecolor("P38")  -- skin color
+    paletteBytes[17], paletteBytes[18], paletteBytes[19], paletteBytes[20] = gui.parsecolor("P20") -- white eyes
     
-    for i = 1, 11 do --copy the header over indiscriminately
-        buff[i] = gdStr:byte(i)
-    end
+    paletteBytes[4] = 0
+    paletteBytes[8] = 0
+    paletteBytes[12] = 0
+    paletteBytes[16] = 0
+    paletteBytes[20] = 0
     
-    for i = 0, height-1 do
-        for j = 0, width - 1 do
-            local a = gdStr:byte(12 + i*width*4 + j*4)
-            local r = gdStr:byte(12 + i*width*4 + j*4 + 1)
-            local g = gdStr:byte(12 + i*width*4 + j*4 + 2)
-            local b = gdStr:byte(12 + i*width*4 + j*4 + 3)
-            
-            if g==112 then
-                -- blue undies
-                r, g, b = gui.parsecolor(pal[3])
-            elseif g==232 then
-                -- cyan body
-                r, g, b = gui.parsecolor(pal[2])
-            elseif g==0 then
-                -- black outline
-                r, g, b = gui.parsecolor(pal[1])
-            elseif g==228 then
-                -- skin color
-                r, g, b = gui.parsecolor("P38")
-            elseif g==252 then
-                -- white eyes
-                r, g, b = gui.parsecolor("P20")
-            end
-            
-            buff[bi]     = a
-            buff[bi + 1] = r
-            buff[bi + 2] = g
-            buff[bi + 3] = b
-            
-            bi = bi + 4 -- table.insert is O(N). This isn't!
-        end
-    end
+    -- Values seem to be correct, but ghost is just slightly darker...why??
     
-    -- Dump the bytes into a stupid bulky string and return it.
-    return string.char(unpack(buff))
+    -- print(string.format("%02X, %02X, %02X, %02X", paletteBytes[1],  paletteBytes[2],  paletteBytes[3],  paletteBytes[4]))
+    print(unpack(paletteBytes))
+    
+    local paletteStr = string.char(unpack(paletteBytes))
+    print(#paletteStr)
+    
+    -- Splice the bytes into a stupid bulky string and return it.
+    local str = gdStr:sub(1, 13)
+        ..paletteStr
+        ..gdStr:sub(34)
+        
+    print("output length: "..#str)
+    
+    return str
 
 end
 mod.paletteize = paletteize
