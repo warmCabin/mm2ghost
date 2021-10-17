@@ -34,6 +34,12 @@ setmetatable(cfg, {__index = {
     baseDir = "./ghosts"
 }})
 
+local function assert(condition, message)
+    if not condition then
+        error("\n\n==============================\n"..tostring(message).."\n==============================\n")
+    end
+end
+
 -- Read number Big-endian
 local function readNumBE(file, length)
     assert(length <= 8, "Read operation will overflow.")

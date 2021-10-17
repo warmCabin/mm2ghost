@@ -33,6 +33,12 @@ setmetatable(cfg, {__index = {
     baseDir = "./ghosts"
 }})
 
+local function assert(condition, message)
+    if not condition then
+        error("\n\n==============================\n"..tostring(message).."\n==============================\n")
+    end
+end
+
 local function writeNumBE(file, val, length)
     for i = length-1, 0, -1 do
         file:write(string.char(band(rshift(val, i*8), 0xFF))) -- Lua makes binary file I/O such a pain.
