@@ -209,6 +209,7 @@ local scrlXEmu = 0
 local prevScrlYEmu = 0
 local scrlYEmu = 0
 local stageEmu = 0
+local prevLoadedStage = -1
 local prevGameState = 0
 local gameState = 0
 local scrollStartFrame = 0
@@ -415,11 +416,14 @@ local function update()
     end
     
     -- TODO: game state constants
-    if prevGameState == 255 and gameState == 82 then
-        -- TODO: Check if we're loading the same stage we loaded previously.
-        -- That would indicate a death, meaning the ghost should NOT be reloaded.
-        -- (Certain speedrun strats involve taking an intentional death)
-        print("Loaded stage "..stageEmu)
+    
+    -- Check if new stage was loaded, based on game state.
+    -- Also need to check whether we're loading the same stage as previously, which would indicate a death, and means the stage
+    -- should NOT be reloaded (Certain speedrun strats involve taking an intentional death).
+    if prevGameState == 255 and gameState == 82 and prevLoadedStage ~= stageEmu then        
+        prevLoadedStage = stageEmu
+        print(string.format("[%d] Loaded stage %d", emu.framecount(), stageEmu))
+        if not ghostData[stageEmu] then print("...but no one came.") end
         startFrame = frameCount + 1
     end
     
