@@ -428,8 +428,8 @@ local function update()
     -- TODO: game state constants
     
     -- Check if new stage was loaded, based on game state.
-    -- Also need to check whether we're loading the same stage as previously, which would indicate a death, and means the stage
-    -- should NOT be reloaded (Certain speedrun strats involve taking an intentional death).
+    -- Also need to check whether we're loading the same stage as previously, which would indicate a death,
+    -- and means the ghost data should NOT be realigned (Certain speedrun strats involve taking an intentional death).
     if prevGameState == 255 and gameState == 82 and prevLoadedStage ~= stageEmu then        
         prevLoadedStage = stageEmu
         print(string.format("[%d] Loaded stage %d", emu.framecount(), stageEmu))
