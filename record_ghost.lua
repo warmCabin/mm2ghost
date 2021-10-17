@@ -196,8 +196,11 @@ local function main()
             hidden = false
             writeNumBE(ghost, hideLength, 2)
         else
-            -- TODO: check if hideLength exceeds 65535
             hideLength = hideLength + 1
+            if hideLength == 65536 then
+                -- This corresponds to 18 minutes of waiting on a menu screen. No reason to acutally support that...
+                assert(false, "Are you still playing???")
+            end
             return
         end
     end
@@ -285,10 +288,14 @@ emu.registerafter(main)
 
 -- Gets called when the script is closed/stopped.
 local function finalize()
-    -- TODO: if hidden, write length...?
     print("Finishsed recording on frame "..emu.framecount()..".")
     print("Ghost is "..length.." frames long.")
-    ghost:seek("set", 0x06) -- Length was unknown until this point. Go back and save it.
+    if hidden then
+        -- Script was stopped before the ghost became unhidden.
+        writeNumBE(ghost, hideLength, 2)
+    end
+    -- Length was unknown until this point. Go back and save it.
+    ghost:seek("set", 0x06)
     writeNumBE(ghost, length, 4)
     ghost:close()
 end
