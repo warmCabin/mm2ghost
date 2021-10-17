@@ -101,6 +101,7 @@ local cosmicOffset = 90
 
 local cloneData = {}
 
+-- TODO: Could we simply require play_ghost.lua and override this readData function?
 local function readData()
     if gameState == PAUSED or gameState == HEALTH_REFILL then
         -- Shift everything ahead by 1 frame
