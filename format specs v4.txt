@@ -1,5 +1,5 @@
 0x00-0x03: 4-byte signature: 6D 6D 32 67 ("mm2g")
-0x04-0x05: version number: 2-byte, unsigned, big-endian (should be 00 03)
+0x04-0x05: version number: 2-byte, unsigned, big-endian (should be 00 04)
 0x06-0x09: length: 4-byte, unsigned, big-endian
 
 Following this header is length frames of data.
@@ -35,9 +35,11 @@ flags:
 │            A 2-byte, big-endian length will follow; this is how many frames to wait before reading
 │            more ghost data. This is different from an animation index of 0xFF in that
 │            no flags, X, or Y will be written.
+│            Note that this flag affects subsequent frames, and does not preclude other flags from appearing.
+│            In particular, the weapon, animation, screen, and stage flags should still be respected.
 └───────── Unused. Set to 0 or I will kill you.
 	
 If multiple "extra byte" flags are set, their corresponding extra bytes will appear in order from least to most
-significant bit. i.e., Weapon, Animation, Screen #, Stage #.
+significant bit. i.e., Weapon, Animation, Screen #, Stage #, Hide.
 
 These flags essentially create an RLE compression scheme for important variables that don't change often.
