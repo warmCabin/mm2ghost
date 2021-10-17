@@ -441,6 +441,11 @@ local function update()
         startFrame = frameCount + 1
     end
     
+    -- game over screen
+    if gameState == 197 then
+        prevLoadedStage = -1
+    end
+    
     local data = readData()
     if not data then return end -- this frame is out of range of the ghost. Possibly put this check in shouldDraw.
     
