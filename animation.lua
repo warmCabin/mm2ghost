@@ -9,7 +9,7 @@
 local mod = {}
 
 --[[
-    Reads data from a gd image file. Lua and FCEUX have no image manipulation support whatsoever,
+    Reads data from a gd image file. Lua and FCEUX have no image manipulation support whatsoever*,
     so typically people install the Lua GD library. FCEUX IS capable of drawing images, but only
     in the GD string format, which is an internal format of the GD library--were they trying to get around
     a licensing issue? Either way, it's up to you to find and install a copy of the GD library.
@@ -27,12 +27,12 @@ local mod = {}
     If you're a Windows user and you're as lazy as me, you'll appreciate not needing to run a makefile
     and shove a bunch of random DLLs into your path!
     
-    However, I think FCEUX makes some sort of GD implementation accessible to Lua by default.
-    I need to look into that...
-    
     Each image of Mega Man is stored as a paletteized GD string serialized plainly to a file.
     
     see https://libgd.github.io/manuals/2.3.0/files/gd_gd-c.html
+    
+    * I think FCEUX makes some sort of GD implementation accessible to Lua by default.
+      I need to look into that...
 ]]
 local function readGD(filename)
     local img = io.open(filename, "rb")
@@ -47,7 +47,6 @@ mod.readGD = readGD
 --[[
     Sprite mirroring. Returns a flipped version of the given GD image.
     This function simply iterates through each row and reverses the order of the pixels.
-    It has to do this in 4-byte tuples, which gets a little confusing.
 ]]
 local function flipGD(gdStr)
     
@@ -56,7 +55,8 @@ local function flipGD(gdStr)
     local buff = {}
     local bi = 1038
     
-    for i = 1, 1037 do -- Copy over the header and palette indiscriminately
+    -- Copy 13-byte header + 1 KB of mostly useless palette data indiscriminately.
+    for i = 1, 1037 do
         buff[i] = gdStr:byte(i)
     end
     
@@ -186,21 +186,25 @@ palettes[11] = palettes[9]           -- 3
 
 mod.palettes = palettes
 
+local function setPalette(gdPal, index, r, g, b, a)
+    index = (index - 1) * 4 + 1
+    
+    gdPal[index]     = r
+    gdPal[index + 1] = g
+    gdPal[index + 2] = b
+    gdPal[index + 3] = 0xFF - a -- GD seems to have alpha backwards.
+end
+
 --[[
     Convert a blue & cyan Mega Man image to the appropriate weapon palette.
-    The GD string format used by FCEUX actually has a paletteized mode...
-    The docs claim it's not supported but there's code to parse it.
-    I don't know WHAT to believe!
+    This is accomplished by splicing the appropriate colors into the first
+    five entires of the GD palette. The remaining 251 are left intact...
     
-    This code checks for the specific RGB values in the Mega Man images I use.
-    Actually, it only checks for the specific G values!
-    Run this on other images for unpredictable results!
+    The FCEUX docs claim this paletteized mode is not supported. Someone had better update that!
     
     TODO: PRECOMP OR CACHE THESE!!! This processes 2KB of data 60 times a second!!
 ]]
 local function paletteize(gdStr, pIndex)
-
-    print("input length: "..#gdStr)
 
     local pal = palettes[pIndex]
     if not pal then
@@ -210,36 +214,20 @@ local function paletteize(gdStr, pIndex)
         return gdStr
     end
     
+    -- Set up GD palette. We only care about the first 5 colors, but 256 colors are in there, lurking...
     local paletteBytes = {}
-                                
-    paletteBytes[1],  paletteBytes[2],  paletteBytes[3],  paletteBytes[4]  = gui.parsecolor(pal[3]) -- blue undies
-    paletteBytes[5],  paletteBytes[6],  paletteBytes[7],  paletteBytes[8]  = gui.parsecolor(pal[2]) -- cyan body
-    paletteBytes[9],  paletteBytes[10], paletteBytes[11], paletteBytes[12] = gui.parsecolor(pal[1]) -- black outline
-    paletteBytes[13], paletteBytes[14], paletteBytes[15], paletteBytes[16] = gui.parsecolor("P38")  -- skin color
-    paletteBytes[17], paletteBytes[18], paletteBytes[19], paletteBytes[20] = gui.parsecolor("P20") -- white eyes
-    
-    paletteBytes[4] = 0
-    paletteBytes[8] = 0
-    paletteBytes[12] = 0
-    paletteBytes[16] = 0
-    paletteBytes[20] = 0
-    
-    -- Values seem to be correct, but ghost is just slightly darker...why??
-    
-    -- print(string.format("%02X, %02X, %02X, %02X", paletteBytes[1],  paletteBytes[2],  paletteBytes[3],  paletteBytes[4]))
-    print(unpack(paletteBytes))
+    setPalette(paletteBytes, 1, gui.parsecolor(pal[3])) -- blue undies
+    setPalette(paletteBytes, 2, gui.parsecolor(pal[2])) -- cyan body
+    setPalette(paletteBytes, 3, gui.parsecolor(pal[1])) -- black outline
+    setPalette(paletteBytes, 4, gui.parsecolor("P38"))  -- skin color
+    setPalette(paletteBytes, 5, gui.parsecolor("P20"))  -- white eyes
     
     local paletteStr = string.char(unpack(paletteBytes))
-    print(#paletteStr)
     
     -- Splice the bytes into a stupid bulky string and return it.
-    local str = gdStr:sub(1, 13)
+    return gdStr:sub(1, 13)
         ..paletteStr
         ..gdStr:sub(34)
-        
-    print("output length: "..#str)
-    
-    return str
 
 end
 mod.paletteize = paletteize
