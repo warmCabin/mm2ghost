@@ -104,6 +104,7 @@ local ANIM_FLAG = 4
 local SCREEN_FLAG = 8
 local FREEZE_FLAG = 16
 local BEGIN_STAGE_FLAG = 32
+local HIDE_FLAG = 64
 
 local ghostData = {}
 
@@ -177,6 +178,11 @@ local function init()
             data.stage = curStage
         end
         
+        if AND(flags, HIDE_FLAG) ~= 0 then
+            local duration = readNumBE(ghost, 2)
+            dataIndex = dataIndex + duration
+        end
+        
         if not ghostData[curStage] then
             ghostData[curStage] = {}
             -- something something why wasn't the flag set
@@ -237,7 +243,7 @@ local function readData()
         return nil
     end
     
-    if i > 0 then
+    if ghostData[stageEmu][i - 1] then
         prevScrlGhost = ghostData[stageEmu][i - 1].scrl
     end
     

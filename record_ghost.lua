@@ -104,6 +104,8 @@ local prevScreen = -1
 local length = 0
 local stageNum
 local prevStageNum
+local hidden = false
+local hideLength
 
 local PLAYING = 178
 local BOSS_RUSH = 100
@@ -171,18 +173,36 @@ local function getAnimIndex()
     end 
 end
 
+local function shouldHide()
+    return not validState(gameState) and gameState ~= READY
+end
+
 local MIRRORED_FLAG = 1
 local WEAPON_FLAG = 2
 local ANIM_FLAG = 4
 local SCREEN_FLAG = 8
 local FREEZE_FLAG = 16
 local BEGIN_STAGE_FLAG = 32
+local HIDE_FLAG = 64
 
 local function main()
 
-    length = length + 1
     prevGameState = gameState
     gameState = memory.readbyte(0x01FE)
+
+    if hidden then
+        if not shouldHide() then
+            print(string.format("Hidden for %d frames.", hideLength))
+            hidden = false
+            writeNumBE(ghost, hideLength, 2)
+        else
+            -- TODO: check if hideLength exceeds 65535
+            hideLength = hideLength + 1
+            return
+        end
+    end
+
+    length = length + 1
     animIndex = getAnimIndex()
     stageNum = memory.readbyte(0x2A)
 
@@ -229,6 +249,13 @@ local function main()
         print(string.format("Loaded stage %d", stageNum))
     end
     
+    if shouldHide() and not hidden then
+        print("Hiding ghost.")
+        hidden = true
+        hideLength = 0
+        flags = OR(flags, HIDE_FLAG)
+    end
+    
     writeByte(ghost, flags)
     
     -- It kills me, but we have to make these checks twice. Maybe I could write a little buffer or something.
@@ -258,6 +285,7 @@ emu.registerafter(main)
 
 -- Gets called when the script is closed/stopped.
 local function finalize()
+    -- TODO: if hidden, write length...?
     print("Finishsed recording on frame "..emu.framecount()..".")
     print("Ghost is "..length.." frames long.")
     ghost:seek("set", 0x06) -- Length was unknown until this point. Go back and save it.
