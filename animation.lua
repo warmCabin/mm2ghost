@@ -11,8 +11,8 @@ local mod = {}
 --[[
     Reads data from a gd image file. Lua and FCEUX have no image manipulation support whatsoever,
     so typically people install the Lua GD library. FCEUX IS capable of drawing images, but only
-    in the GD string format--were they trying to get around a licensing issue? Either way, it's
-    up to you to find and install a copy of the GD library.
+    in the GD string format, which is an internal format of the GD library--were they trying to get around
+    a licensing issue? Either way, it's up to you to find and install a copy of the GD library.
     
     ...OR!
     
@@ -26,6 +26,13 @@ local mod = {}
 
     If you're a Windows user and you're as lazy as me, you'll appreciate not needing to run a makefile
     and shove a bunch of random DLLs into your path!
+    
+    However, I think FCEUX makes some sort of GD implementation accessible to Lua by default.
+    I need to look into that...
+    
+    Each image of Mega Man is stored as a paletteized GD string serialized plainly to a file.
+    
+    see https://libgd.github.io/manuals/2.3.0/files/gd_gd-c.html
 ]]
 local function readGD(filename)
     local img = io.open(filename, "rb")
