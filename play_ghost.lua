@@ -103,13 +103,14 @@ local frameCount = 0
 local prevFrameCount = 0
 local ghostAlpha = 0.7 -- Could go in config! FCEUX only does 0%, 50%, or 100% anyway. Janky.
 
-local MIRRORED_FLAG = 1
-local WEAPON_FLAG = 2
-local ANIM_FLAG = 4
-local SCREEN_FLAG = 8
-local FREEZE_FLAG = 16
-local BEGIN_STAGE_FLAG = 32
-local HIDE_FLAG = 64
+local MIRRORED_FLAG = 0x01
+local WEAPON_FLAG = 0x02
+local ANIM_FLAG = 0x04
+local SCREEN_FLAG = 0x08
+local FREEZE_FLAG = 0x10
+local BEGIN_STAGE_FLAG = 0x20
+local HIDE_FLAG = 0x40
+local INVALID_FLAGS = 0x80
 
 local ghostData = {}
 
@@ -141,6 +142,8 @@ local function init()
         data.yPos = readByte(ghost)
         
         local flags = readByte(ghost)
+        
+        assert(AND(flags, INVALID_FLAGS) == 0, "Invalid or corrupt ghost file (unused flag enabled). Did you do that on purpose!?")
         
         if AND(flags, MIRRORED_FLAG) ~= 0 then
             data.flipped = true
