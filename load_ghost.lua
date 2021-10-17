@@ -2,7 +2,7 @@ require("iuplua")
 
 local mod = {}
 
-function mod.fixup(filename)
+function mod.fixup(filename) -- filedlg.EXTDEFAULT?
     if filename:sub(-6) ~= ".ghost" then
         filename = filename..".ghost"
     end
@@ -22,10 +22,12 @@ end
 function mod.readGhost(baseDir)
 
     local filedlg = iup.filedlg{
-      dialogtype = "OPEN",
+      dialogType = "OPEN",
       filter = "*.ghost",
-      filterinfo = "Ghost files (*.ghost)",
-      directory = baseDir
+      filterInfo = "Ghost files (*.ghost)",
+      directory = baseDir,
+      -- multipleFiles = "Yes"
+      -- MULTIVALUEPATH = 1 -- Not supported >:(
     }
 
     filedlg:popup(iup.CENTER, iup.CENTER)
