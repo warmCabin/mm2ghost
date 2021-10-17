@@ -96,14 +96,14 @@ local checkWrap = cfg.checkWrapping
 local startFrame = emu.framecount() + 2 -- offset to line up ghost draws with NES draws
 local frameCount = 0
 local prevFrameCount = 0
-local ghostAlpha = 0.7 -- Could go in config!
+local ghostAlpha = 0.7 -- Could go in config! FCEUX only does 0%, 50%, or 100% anyway. Janky.
 
-local FLIP_FLAG = 1
+local MIRRORED_FLAG = 1
 local WEAPON_FLAG = 2
 local ANIM_FLAG = 4
 local SCREEN_FLAG = 8
-local HALT_FLAG = 16
-local STAGE_FLAG = 32
+local FREEZE_FLAG = 16
+local BEGIN_STAGE_FLAG = 32
 
 local ghostData = {}
 
@@ -135,7 +135,7 @@ local function init()
         
         local flags = readByte(ghost)
         
-        if AND(flags, FLIP_FLAG) ~= 0 then
+        if AND(flags, MIRRORED_FLAG) ~= 0 then
             data.flipped = true
         end
         
@@ -160,17 +160,16 @@ local function init()
             data.screen = curScreen
         end
         
-        if AND(flags, HALT_FLAG) ~= 0 then
+        if AND(flags, FREEZE_FLAG) ~= 0 then
             data.halt = true
         end
         
-        if AND(flags, STAGE_FLAG) ~= 0 then             
+        if AND(flags, BEGIN_STAGE_FLAG) ~= 0 then
+             -- Overwrites what data was already there for the stage.
+             -- Revisiting stages isn't really a use case for this script.
             data.stage = readByte(ghost)
-            -- if data.stage ~= curStage then
-                -- This might get set if the player dies in a stage.
-                curStage = data.stage
-                dataIndex = 0
-            -- end
+            curStage = data.stage
+            dataIndex = 0
             if not ghostData[curStage] then
                 ghostData[curStage] = {}
             end

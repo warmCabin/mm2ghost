@@ -33,6 +33,7 @@ setmetatable(cfg, {__index = {
     baseDir = "./ghosts"
 }})
 
+-- TODO: A util file that encapsulates file IO and this bootleg asserter.
 local function assert(condition, message)
     if not condition then
         error("\n\n==============================\n"..tostring(message).."\n==============================\n")
@@ -170,12 +171,12 @@ local function getAnimIndex()
     end 
 end
 
-local FLIP_FLAG = 1
+local MIRRORED_FLAG = 1
 local WEAPON_FLAG = 2
 local ANIM_FLAG = 4
 local SCREEN_FLAG = 8
-local HALT_FLAG = 16
-local STAGE_FLAG = 32
+local FREEZE_FLAG = 16
+local BEGIN_STAGE_FLAG = 32
 
 local function main()
 
@@ -199,7 +200,7 @@ local function main()
     local flags = 0
     
     if isFlipped() then
-        flags = OR(flags, FLIP_FLAG)
+        flags = OR(flags, MIRRORED_FLAG)
     end
     
     if weapon ~= prevWeapon then
@@ -216,15 +217,15 @@ local function main()
     end
     
     if isFrozen() then
-        flags = OR(flags, HALT_FLAG)
+        flags = OR(flags, FREEZE_FLAG)
     end
     
-    if prevGameState == LOADING and gameState == READY and prevStageNum ~= stageNum or length == 1 then
-        -- TODO: Ditch the length == 1 check. That way stage number is only recorded at the beginning
-        -- of the stage, and we can have a "floating ghost" with no stage num, not synced to the loading lag.
+    if prevGameState == LOADING and gameState == READY and prevStageNum ~= stageNum then
+        -- Stage number is only recorded when a stage load event is detected, so we can have a "floating ghost"
+        -- with no stage num, not synced to the loading lag.
         -- prevStage should probably reset when we see any menu screen.
         prevStageNum = stageNum
-        flags = OR(flags, STAGE_FLAG)
+        flags = OR(flags, BEGIN_STAGE_FLAG)
         print(string.format("Loaded stage %d", stageNum))
     end
     
@@ -245,7 +246,7 @@ local function main()
         writeByte(ghost, screen)
     end
     
-    if AND(flags, STAGE_FLAG) ~= 0 then
+    if AND(flags, BEGIN_STAGE_FLAG) ~= 0 then
         writeByte(ghost, stageNum)
     end
     
