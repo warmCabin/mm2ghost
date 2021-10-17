@@ -293,7 +293,7 @@ local function finalize()
     print("Ghost is "..length.." frames long.")
     if hidden then
         -- Script was stopped before the ghost became unhidden.
-        writeNumBE(ghost, hideLength, 2)
+        writeNumBE(ghost, 0, 2)
     end
     -- Length was unknown until this point. Go back and save it.
     ghost:seek("set", 0x06)
