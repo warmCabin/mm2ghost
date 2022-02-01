@@ -2,7 +2,7 @@
 --[[
     This file handles all the gritty details of animating ghosts. Call mod.update every frame, and check its
     return values to get the image to draw and the offsets to draw it at.
-    It also provides public access to the animation tables, the palette table, and the paletteize function,
+    It also provides public access to the animation tables, the palette table, and the palettize function,
     in case you need them. play_ghost.lua does not use them at all; just mod.update.
 ]]
 
@@ -27,7 +27,7 @@ local mod = {}
     If you're a Windows user and you're as lazy as me, you'll appreciate not needing to run a makefile
     and shove a bunch of random DLLs into your path!
     
-    Each image of Mega Man is stored as a paletteized GD string serialized plainly to a file.
+    Each image of Mega Man is stored as a palettized GD string serialized plainly to a file.
     
     see https://libgd.github.io/manuals/2.3.0/files/gd_gd-c.html
     
@@ -201,11 +201,11 @@ end
     This is accomplished by splicing the appropriate colors into the first
     five entires of the GD palette. The remaining 251 are left intact...
     
-    The FCEUX docs claim this paletteized mode is not supported. Someone had better update that!
+    The FCEUX docs claim this palettized mode is not supported. Someone had better update that!
     
     TODO: PRECOMP OR CACHE THESE!!! This processes 2KB of data 60 times a second!!
 ]]
-local function paletteize(gdStr, pIndex)
+local function palettize(gdStr, pIndex)
 
     local pal = palettes[pIndex]
     if not pal then
@@ -231,7 +231,7 @@ local function paletteize(gdStr, pIndex)
         ..gdStr:sub(34)
 
 end
-mod.paletteize = paletteize
+mod.palettize = palettize
 
 local animFrame = 1
 local animTimer = -1
@@ -296,7 +296,7 @@ function mod.update(data)
     end
     
     -- Does this copy the whole string over?
-    local img = paletteize(animTable[animIndex][animFrame][1], weapon)
+    local img = palettize(animTable[animIndex][animFrame][1], weapon)
     
     local offsetX = animTable[animIndex][animFrame][2]
     local offsetY = animTable[animIndex][animFrame][3]
