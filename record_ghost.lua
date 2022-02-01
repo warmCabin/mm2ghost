@@ -125,6 +125,7 @@ local WILY_KILL = 65 -- basically BOSS_KILL
 local LOADING = 255
 
 -- TODO: invalid states??? {PAUSED, DEAD, MENU, READY}
+-- TODO: This is atually a return address, so find a better way to check gamestate.
 local validStates = {PLAYING, BOSS_RUSH, LAGGING, HEALTH_REFILL, MENU, BOSS_KILL, LAGGING2, DOUBLE_DEATH, DOUBLE_DEATH2, WILY_KILL, LAGGING3}
 local freezeStates = {HEALTH_REFILL, LAGGING, LAGGING2, LAGGING3}
 local climbAnims  = {0x1B, 0x1C, 0x1E}
@@ -174,6 +175,7 @@ local function getAnimIndex()
     end 
 end
 
+-- TODO: This doesn't seem to pick up on death.
 local function shouldHide()
     return not validState(gameState) and gameState ~= READY
 end
