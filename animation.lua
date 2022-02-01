@@ -9,10 +9,10 @@
 local mod = {}
 
 --[[
-    Reads data from a gd image file. Lua and FCEUX have no image manipulation support whatsoever,
+    Reads data from a gd image file. Lua and FCEUX have no image manipulation support whatsoever*,
     so typically people install the Lua GD library. FCEUX IS capable of drawing images, but only
-    in the GD string format--were they trying to get around a licensing issue? Either way, it's
-    up to you to find and install a copy of the GD library.
+    in the GD string format, which is an internal format of the GD library--were they trying to get around
+    a licensing issue? Either way, it's up to you to find and install a copy of the GD library.
     
     ...OR!
     
@@ -26,6 +26,13 @@ local mod = {}
 
     If you're a Windows user and you're as lazy as me, you'll appreciate not needing to run a makefile
     and shove a bunch of random DLLs into your path!
+    
+    Each image of Mega Man is stored as a paletteized GD string serialized plainly to a file.
+    
+    see https://libgd.github.io/manuals/2.3.0/files/gd_gd-c.html
+    
+    * I think FCEUX makes some sort of GD implementation accessible to Lua by default.
+      I need to look into that...
 ]]
 local function readGD(filename)
     local img = io.open(filename, "rb")
@@ -38,28 +45,26 @@ end
 mod.readGD = readGD
 
 --[[
-    Sprite mirroring. Returns a flipped version of the given GD image.
+    Sprite mirroring. Returns a horizontally flipped version of the given GD image.
     This function simply iterates through each row and reverses the order of the pixels.
-    It has to do this in 4-byte tuples, which gets a little confusing.
 ]]
 local function flipGD(gdStr)
     
     local width  = gdStr:byte(3)*256 + gdStr:byte(4)
     local height = gdStr:byte(5)*256 + gdStr:byte(6)
     local buff = {}
-    local bi = 12
+    local bi = 1038
     
-    for i = 1, 11 do -- Copy the header over indiscriminately
+    -- Copy 13-byte header + 1 KB of mostly useless palette data indiscriminately.
+    for i = 1, 1037 do
         buff[i] = gdStr:byte(i)
     end
     
+    -- Copy each row backwards
     for i = 0, height-1 do    -- Real programmers index their shit by 0, dammit!
         for j = 0, width-1 do -- The math works out so nice!
-            buff[bi]   = gdStr:byte(12 + i*width*4 + (width-j-1)*4) 
-            buff[bi + 1] = gdStr:byte(12 + i*width*4 + (width-j-1)*4 + 1)
-            buff[bi + 2] = gdStr:byte(12 + i*width*4 + (width-j-1)*4 + 2)
-            buff[bi + 3] = gdStr:byte(12 + i*width*4 + (width-j-1)*4 + 3)
-            bi = bi + 4 -- table.insert is O(N). This isn't!
+            buff[bi] = gdStr:byte(1038 + i * width + (width - j - 1))
+            bi = bi + 1
         end
     end
     
@@ -84,7 +89,7 @@ local climb = readGD("mmframes/climb.gd")
     See animIndex.txt for a concise list of what each index represents.
 ]]
 local anim = {}
-anim[0x00] = {{readGD("mmframes/standing.gd"), 0, 0, 91}, {readGD("mmframes/blinking.gd"), 4, 0, 9}}
+anim[0x00] = {{readGD("mmframes/standing.gd"), 0, 0, 91}, {readGD("mmframes/blinking.gd"), 4, 0, 9}} -- TODO: 90/10!?
 anim[0x01] = {{readGD("mmframes/standnshoot.gd"), 4, 0}}
 anim[0x03] = {{readGD("mmframes/standnthrow.gd"), 4, 0}} 
 anim[0x04] = {{readGD("mmframes/tiptoe.gd"), 4, 0}}
@@ -182,15 +187,21 @@ palettes[11] = palettes[9]           -- 3
 
 mod.palettes = palettes
 
+local function setPalette(gdPal, index, r, g, b, a)
+    index = (index - 1) * 4 + 1
+    
+    gdPal[index]     = r
+    gdPal[index + 1] = g
+    gdPal[index + 2] = b
+    gdPal[index + 3] = 0xFF - a -- GD seems to have alpha backwards.
+end
+
 --[[
     Convert a blue & cyan Mega Man image to the appropriate weapon palette.
-    The GD string format used by FCEUX actually has a paletteized mode...
-    The docs claim it's not supported but there's code to parse it.
-    I don't know WHAT to believe!
+    This is accomplished by splicing the appropriate colors into the first
+    five entires of the GD palette. The remaining 251 are left intact...
     
-    This code checks for the specific RGB values in the Mega Man images I use.
-    Actually, it only checks for the specific G values!
-    Run this on other images for unpredictable results!
+    The FCEUX docs claim this paletteized mode is not supported. Someone had better update that!
     
     TODO: PRECOMP OR CACHE THESE!!! This processes 2KB of data 60 times a second!!
 ]]
@@ -204,50 +215,20 @@ local function paletteize(gdStr, pIndex)
         return gdStr
     end
     
-    local width  = gdStr:byte(3)*256 + gdStr:byte(4)
-    local height = gdStr:byte(5)*256 + gdStr:byte(6)
-    local buff = {}
-    local bi = 12
+    -- Set up GD palette. We only care about the first 5 colors, but 256 colors are in there, lurking...
+    local paletteBytes = {}
+    setPalette(paletteBytes, 1, gui.parsecolor(pal[3])) -- blue undies
+    setPalette(paletteBytes, 2, gui.parsecolor(pal[2])) -- cyan body
+    setPalette(paletteBytes, 3, gui.parsecolor(pal[1])) -- black outline
+    setPalette(paletteBytes, 4, gui.parsecolor("P38"))  -- skin color
+    setPalette(paletteBytes, 5, gui.parsecolor("P20"))  -- white eyes
     
-    for i = 1, 11 do --copy the header over indiscriminately
-        buff[i] = gdStr:byte(i)
-    end
+    local paletteStr = string.char(unpack(paletteBytes))
     
-    for i = 0, height-1 do
-        for j = 0, width - 1 do
-            local a = gdStr:byte(12 + i*width*4 + j*4)
-            local r = gdStr:byte(12 + i*width*4 + j*4 + 1)
-            local g = gdStr:byte(12 + i*width*4 + j*4 + 2)
-            local b = gdStr:byte(12 + i*width*4 + j*4 + 3)
-            
-            if g==112 then
-                -- blue undies
-                r, g, b = gui.parsecolor(pal[3])
-            elseif g==232 then
-                -- cyan body
-                r, g, b = gui.parsecolor(pal[2])
-            elseif g==0 then
-                -- black outline
-                r, g, b = gui.parsecolor(pal[1])
-            elseif g==228 then
-                -- skin color
-                r, g, b = gui.parsecolor("P38")
-            elseif g==252 then
-                -- white eyes
-                r, g, b = gui.parsecolor("P20")
-            end
-            
-            buff[bi]     = a
-            buff[bi + 1] = r
-            buff[bi + 2] = g
-            buff[bi + 3] = b
-            
-            bi = bi + 4 -- table.insert is O(N). This isn't!
-        end
-    end
-    
-    -- Dump the bytes into a stupid bulky string and return it.
-    return string.char(unpack(buff))
+    -- Splice the bytes into a stupid bulky string and return it.
+    return gdStr:sub(1, 13)
+        ..paletteStr
+        ..gdStr:sub(34)
 
 end
 mod.paletteize = paletteize
