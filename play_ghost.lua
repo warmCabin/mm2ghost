@@ -103,6 +103,26 @@ local frameCount = 0
 local prevFrameCount = 0
 local ghostAlpha = 0.7 -- Could go in config! FCEUX only does 0%, 50%, or 100% anyway. Janky.
 
+local PLAYING = 178
+local BOSS_RUSH = 100
+local LAGGING = 149
+local LAGGING2 = 171 -- ???
+local LAGGING3 = 93  -- lagging during boss rush????
+local HEALTH_REFILL = 119
+local PAUSED = 128
+local DEATH = 156 -- also scrolling/waiting
+local SCROLLING = 156
+local MENU = 197
+local READY = 82
+local BOSS_KILL = 143
+local DOUBLE_DEATH = 134 -- It's a different gamestate somehow!!
+local DOUBLE_DEATH2 = 146 -- ???
+local WILY_KILL = 65 -- basically BOSS_KILL
+local LOADING = 255
+
+-- I neglected to document most of these game states...
+local INVALID_STATES = {195, 247, LOADING, 78, 120}
+
 local MIRRORED_FLAG = 0x01
 local WEAPON_FLAG = 0x02
 local ANIM_FLAG = 0x04
@@ -209,9 +229,6 @@ print("Done.")
 print(string.format("Playing ghost on frame %d", emu.framecount()))
 print(string.format("%d frames of data", ghostLen))
 print()
-
-local SCROLLING = 156
-local INVALID_STATES = {195, 247, 255, 78, 120}
 
 local xPosEmu
 local yPosEmu
@@ -429,12 +446,10 @@ local function update()
         end
     end
     
-    -- TODO: game state constants
-    
     -- Check if new stage was loaded, based on game state.
     -- Also need to check whether we're loading the same stage as previously, which would indicate a death,
     -- and means the ghost data should NOT be realigned (Certain speedrun strats involve taking an intentional death).
-    if prevGameState == 255 and gameState == 82 and prevLoadedStage ~= stageEmu then        
+    if prevGameState == LOADING and gameState == READY and prevLoadedStage ~= stageEmu then        
         prevLoadedStage = stageEmu
         print(string.format("[%d] Loaded stage %d", emu.framecount(), stageEmu))
         if not ghostData[stageEmu] then print("...but no one came.") end
@@ -442,7 +457,7 @@ local function update()
     end
     
     -- game over screen
-    if gameState == 197 then
+    if gameState == MENU then
         prevLoadedStage = -1
     end
     
