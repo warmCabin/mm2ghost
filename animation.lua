@@ -45,7 +45,7 @@ end
 mod.readGD = readGD
 
 --[[
-    Sprite mirroring. Returns a flipped version of the given GD image.
+    Sprite mirroring. Returns a horizontally flipped version of the given GD image.
     This function simply iterates through each row and reverses the order of the pixels.
 ]]
 local function flipGD(gdStr)
@@ -60,6 +60,7 @@ local function flipGD(gdStr)
         buff[i] = gdStr:byte(i)
     end
     
+    -- Copy each row backwards
     for i = 0, height-1 do    -- Real programmers index their shit by 0, dammit!
         for j = 0, width-1 do -- The math works out so nice!
             buff[bi] = gdStr:byte(1038 + i * width + (width - j - 1))
