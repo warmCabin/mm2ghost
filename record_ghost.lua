@@ -200,10 +200,8 @@ local function main()
             writeNumBE(ghost, hideLength, 2)
         else
             hideLength = hideLength + 1
-            if hideLength == 65536 then
-                -- This corresponds to 18 minutes of waiting on a menu screen. No reason to acutally support that...
-                assert(false, "Are you still playing???")
-            end
+            -- This corresponds to 18 minutes of waiting on a menu screen. No reason to acutally support that...
+            assert(hideLength < 65536, "Are you still playing???")
             return
         end
     end
