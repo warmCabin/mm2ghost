@@ -40,6 +40,8 @@ You can run the lua files by clicking File -> Lua -> New Lua Script Window... an
 
 This script was developed with Rockman 2, but minimal testing indicates that it is fully compatible with Mega Man 2. I want to make it fully compatible with both versions, so report bugs no matter what you're playing on!
 
+ROM hacks are hit or miss right now. Hacks with lots of custom programming are likely to confuse these scripts.
+
 
 ## Recording a Ghost
 
