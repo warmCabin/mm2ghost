@@ -1,11 +1,7 @@
 --[[
-    Records a v3 ghost file as you play. See format specs v3.txt for the specifics. Or infer them from my code ;)
-    You can provide a path to the desired recording location as an argument (in the Arguments box). If you don't, the script will
-    generate a filename based on the time and date by default.
-    
-    
-    TODO: prompt for "This file already exists." (gui.popup)
-          Alternatively, MAKE A PROPER FUCKING FILE SELECTOR GUI.
+    Records a v4 ghost file as you play. See format specs v4.txt for the specifics. Or infer them from my code ;)
+    You can provide a path to the desired recording location as an argument (in the Arguments box). If you don't, 
+    a file picker will pop up.
     
     TODO: Can't create new directories?
 ]]
@@ -67,23 +63,6 @@ else
         return
     end
 end
-
---[[
--- generate default filename
-if movie.active() and not taseditor.engaged() then
-    filename = movie.getname()
-    local idx = filename:find("[/\\\\][^/\\\\]*$") -- last index of a slash or backslash
-    filename = filename:sub(idx + 1, path:len())   -- path now equals the filename, e.g. "my_movie.fm2"
-else -- TODO: Have record.lua record to the same temp file every time? 
-    -- There's a bug with the TASEditor! movie.active() returns true, but movie.getname() returns an empty string.
-    if taseditor.engaged() then
-        print("WARNING: TASEditor is active. Can't name ghost after movie.")
-        print()
-    end
-    filename = os.date("%Y-%m-%d %H-%M-%S.ghost")
-end ]]
-
--- local path = rootPath.."/"..filename
 
 local ghost = io.open(path, "wb")
 assert(ghost, "Could not open \""..path.."\"")
