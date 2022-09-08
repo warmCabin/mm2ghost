@@ -401,7 +401,7 @@ local function update()
     prevGameState = gameState
     scrlXEmu = memory.readbyte(0x1F)
     scrlYEmu = memory.readbyte(0x22)
-    -- TODO: "gameState" is the high byte of a return address. This really is the easiest way to track it...
+    -- TODO: "gameState" is the low byte of a return address. This really is the easiest way to track it...
     --   Write some more intricate logic so it can support ROM hacks with lots of custom coding. Such as Mega Man 2. lul.
     gameState = memory.readbyte(0x01FE)
     iFrames = memory.readbyte(0x4B)
