@@ -141,3 +141,4 @@ Using zips and full items, you could possibly complete some stages faster than t
 
 - Occasional one-frame glitches when scrolling vertically & loading savestates
 - Running & climbing animations desync from the proper in-game behavior after screen scrolls
+- In the Rockman 2 practice hack, there is a memory leak when you pause exit, which confuses mm2ghost. The workaround is to record your ghosts straight from reset.
