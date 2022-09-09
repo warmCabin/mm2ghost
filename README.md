@@ -38,7 +38,9 @@ To run this script, you will need two things:
 You can open and run your Rockman ROM with Ctrl+O.  
 You can run the lua files by clicking File -> Lua -> New Lua Script Window... and then clicking Browse.
 
-This script was developed with Rockman 2, but minimal testing indicates that it is fully compatible with Mega Man 2. I want to make it fully compatible with both versions, so report bugs no matter what you're playing on!
+### Compatibility
+
+This script was developed with Rockman 2, but minimal testing indicates that it is compatible with Mega Man 2. I want to make it fully compatible with both versions, so report bugs no matter what you're playing on!
 
 ROM hacks are hit or miss right now. Hacks with lots of custom programming are likely to confuse these scripts.
 
