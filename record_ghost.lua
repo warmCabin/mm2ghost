@@ -154,6 +154,32 @@ local function getAnimIndex()
     end 
 end
 
+-- local function getGameState()
+    -- local sp = memory.getregister("s")
+    -- return memory.readbyte(0x0100 + sp + 1)
+-- end
+
+local function getGameState()
+    local sp = memory.getregister("s")
+    gui.text(10, 10, string.format("state: %02X", memory.readbyte(0x0100 + sp + 1)))
+    gui.text(10, 20, string.format("old:   %02X", memory.readbyte(0x01FE)))
+    
+    -- Kludge for the pause-exit bug.
+    -- The obvious and natural way to do add a pause-exit feature to Rockman 2 is to simply have the menu code JMP to the level select screen.
+    -- Unfortunately, this leaves 13 extra bytes on the stack, which confused mm2ghost and can cause crashes if done enough times.
+    -- For this kludge, we iterate backwards in steps of 13 until we find an offset that seems likely.
+    for i = 0xFE, 0x00, -13 do
+        if i <= sp then
+            sp = i + 13
+            break
+        end
+    end
+    
+    gui.text(10, 30, string.format("new:   %02X", memory.readbyte(0x0100 + sp)))
+    
+    return memory.readbyte(0x0100 + sp)
+end
+
 -- TODO: This doesn't seem to pick up on death.
 local function shouldHide()
     return not validState(gameState) and gameState ~= READY
@@ -170,7 +196,7 @@ local HIDE_FLAG = 64
 local function main()
 
     prevGameState = gameState
-    gameState = memory.readbyte(0x01FE)
+    gameState = getGameState()
 
     if hidden then
         if not shouldHide() then

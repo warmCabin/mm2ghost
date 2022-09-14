@@ -300,6 +300,40 @@ local function getScreenY(yPos)
     return y
 end
 
+
+--[[
+    Gets gamestate from the stack.
+    
+    "gameState" is actually the low byte of whatever return address happens to be on top of the stack. There's no convenient game state
+    variable that says "We are in a level" or "We are in a menu," so this really is the easiest way to track it. It's equivalent to setting
+    a bunch of callbacks on a bunch of addresses, more or less.
+    
+    This doesn't quite work even on vanilla. I would at least need to change up all the values I'm using.
+    One option is to start at 0x01FE, then repeatedly subtract 13 until it looks right.
+    
+    TODO: Write some more intricate logic so this can support ROM hacks with lots of custom coding. Such as Mega Man 2. lul.
+]]
+local function getGameState()
+    local sp = memory.getregister("s")
+    gui.text(10, 10, string.format("state: %02X", memory.readbyte(0x0100 + sp + 1)))
+    gui.text(10, 20, string.format("old:   %02X", memory.readbyte(0x01FE)))
+    
+    -- Kludge for the pause-exit bug.
+    -- The obvious and natural way to do add a pause-exit feature to Rockman 2 is to simply have the menu code JMP to the level select screen.
+    -- Unfortunately, this leaves 13 extra bytes on the stack, which confused mm2ghost and can cause crashes if done enough times.
+    -- For this kludge, we iterate backwards in steps of 13 until we find an offset that seems likely.
+    for i = 0xFE, 0x00, -13 do
+        if i <= sp then
+            sp = i + 13
+            break
+        end
+    end
+    
+    gui.text(10, 30, string.format("new:   %02X", memory.readbyte(0x0100 + sp)))
+    
+    return memory.readbyte(0x0100 + sp)
+end
+
 --[[
     Wrapping checks (to make sure ghosts don't draw when they're too far away).
     These aren't quite sufficient on their own. Screen scrolls set the screen number a bit prematurely,
@@ -401,9 +435,7 @@ local function update()
     prevGameState = gameState
     scrlXEmu = memory.readbyte(0x1F)
     scrlYEmu = memory.readbyte(0x22)
-    -- TODO: "gameState" is the low byte of a return address. This really is the easiest way to track it...
-    --   Write some more intricate logic so it can support ROM hacks with lots of custom coding. Such as Mega Man 2. lul.
-    gameState = memory.readbyte(0x01FE)
+    gameState = getGameState()
     iFrames = memory.readbyte(0x4B)
     stageEmu = memory.readbyte(0x2A)
     
