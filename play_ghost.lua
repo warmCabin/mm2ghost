@@ -320,7 +320,7 @@ local function getGameState()
     
     -- Kludge for the pause-exit bug.
     -- The obvious and natural way to do add a pause-exit feature to Rockman 2 is to simply have the menu code JMP to the level select screen.
-    -- Unfortunately, this leaves 13 extra bytes on the stack, which confused mm2ghost and can cause crashes if done enough times.
+    -- Unfortunately, this leaves 13 extra bytes on the stack, which confuses mm2ghost and can cause crashes if done enough times.
     -- For this kludge, we iterate backwards in steps of 13 until we find an offset that seems likely.
     for i = 0xFE, 0x00, -13 do
         if i <= sp then
