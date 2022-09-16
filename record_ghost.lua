@@ -90,6 +90,7 @@ local hideLength
 
 -- TODO: invalid states??? {"paused", "scrolling", "game over", "ready"}
 -- TODO: Why is "game over" in here?
+-- TODO: teleport in?
 local validStates = {"playing", "lagging", "refill", "game over", "boss kill", "wily kill", "spike death", "enemy death"}
 local freezeStates = {"refill", "lagging"}
 local climbAnims  = {0x1B, 0x1C, 0x1E}
@@ -142,7 +143,7 @@ end
 -- TODO: This doesn't seem to pick up on death.
 -- I can't remember if there's a reason READY is an extra state here.
 local function shouldHide()
-    return not validState(gameState) and gameState ~= READY
+    return not validState(gameState) and gameState ~= "ready"
 end
 
 local MIRRORED_FLAG = 1
