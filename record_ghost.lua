@@ -8,6 +8,7 @@
 
 local bit = require("bit")
 local loader = require("load_ghost")
+local gs = require("game_state")
 local rshift, band = bit.rshift, bit.band
 local cfg = {}
 
@@ -87,31 +88,15 @@ local prevStageNum
 local hidden = false
 local hideLength
 
-local PLAYING = 178
-local BOSS_RUSH = 100
-local LAGGING = 149
-local LAGGING2 = 171 -- ???
-local LAGGING3 = 93  -- lagging during boss rush????
-local HEALTH_REFILL = 119
-local PAUSED = 128
-local DEAD = 156 -- also scrolling/waiting
-local MENU = 197
-local READY = 82
-local BOSS_KILL = 143
-local DOUBLE_DEATH = 134 -- It's a different gamestate somehow!!
-local DOUBLE_DEATH2 = 146 -- ???
-local WILY_KILL = 65 -- basically BOSS_KILL
-local LOADING = 255
-
--- TODO: invalid states??? {PAUSED, DEAD, MENU, READY}
--- TODO: This is atually a return address, so find a better way to check gamestate.
-local validStates = {PLAYING, BOSS_RUSH, LAGGING, HEALTH_REFILL, MENU, BOSS_KILL, LAGGING2, DOUBLE_DEATH, DOUBLE_DEATH2, WILY_KILL, LAGGING3}
-local freezeStates = {HEALTH_REFILL, LAGGING, LAGGING2, LAGGING3}
+-- TODO: invalid states??? {"paused", "scrolling", "game over", "ready"}
+-- TODO: Why is "game over" in here?
+local validStates = {"playing", "lagging", "refill", "game over", "boss kill", "wily kill", "spike death", "enemy death"}
+local freezeStates = {"refill", "lagging"}
 local climbAnims  = {0x1B, 0x1C, 0x1E}
 
 local function validState(gameState)
     for _, state in ipairs(validStates) do
-        if state==gameState then return true end
+        if state == gameState then return true end
     end
     return false
 end
@@ -138,7 +123,7 @@ end
 
 local function isFrozen()
     for _, state in ipairs(freezeStates) do
-        if gameState==state then return true end
+        if gameState == state then return true end
     end
     
     return isClimbing() and not (joypad.get(1).up or joypad.get(1).down)
@@ -152,32 +137,6 @@ local function getAnimIndex()
     else
         return memory.readbyte(0x0400)
     end 
-end
-
--- local function getGameState()
-    -- local sp = memory.getregister("s")
-    -- return memory.readbyte(0x0100 + sp + 1)
--- end
-
-local function getGameState()
-    local sp = memory.getregister("s")
-    gui.text(10, 10, string.format("state: %02X", memory.readbyte(0x0100 + sp + 1)))
-    gui.text(10, 20, string.format("old:   %02X", memory.readbyte(0x01FE)))
-    
-    -- Kludge for the pause-exit bug.
-    -- The obvious and natural way to do add a pause-exit feature to Rockman 2 is to simply have the menu code JMP to the level select screen.
-    -- Unfortunately, this leaves 13 extra bytes on the stack, which confuses mm2ghost and can cause crashes if done enough times.
-    -- For this kludge, we iterate backwards in steps of 13 until we find an offset that seems likely.
-    for i = 0xFE, 0x00, -13 do
-        if i <= sp then
-            sp = i + 13
-            break
-        end
-    end
-    
-    gui.text(10, 30, string.format("new:   %02X", memory.readbyte(0x0100 + sp)))
-    
-    return memory.readbyte(0x0100 + sp)
 end
 
 -- TODO: This doesn't seem to pick up on death.
@@ -197,7 +156,7 @@ local HIDE_FLAG = 64
 local function main()
 
     prevGameState = gameState
-    gameState = getGameState()
+    gameState = gs.getGameState()
 
     if hidden then
         if not shouldHide() then
@@ -250,7 +209,7 @@ local function main()
         flags = OR(flags, FREEZE_FLAG)
     end
     
-    if prevGameState == LOADING and gameState == READY and prevStageNum ~= stageNum then
+    if prevGameState == "loading" and gameState == "ready" and prevStageNum ~= stageNum then
         -- Stage number is only recorded when a stage load event is detected, so we can have a "floating ghost"
         -- with no stage num, not synced to the loading lag.
         -- prevStage should probably reset when we see any menu screen.

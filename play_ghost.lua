@@ -14,6 +14,7 @@
 local bit = require("bit")
 local anm = require("animation")
 local loader = require("load_ghost")
+local gs = require("game_state")
 local cfg = {}
 
 -- janky Lua try/catch
@@ -103,25 +104,7 @@ local frameCount = 0
 local prevFrameCount = 0
 local ghostAlpha = 0.7 -- Could go in config! FCEUX only does 0%, 50%, or 100% anyway. Janky.
 
-local PLAYING = 178
-local BOSS_RUSH = 100
-local LAGGING = 149
-local LAGGING2 = 171 -- ???
-local LAGGING3 = 93  -- lagging during boss rush????
-local HEALTH_REFILL = 119
-local PAUSED = 128
-local DEATH = 156 -- also scrolling/waiting
-local SCROLLING = 156
-local MENU = 197
-local READY = 82
-local BOSS_KILL = 143
-local DOUBLE_DEATH = 134 -- It's a different gamestate somehow!!
-local DOUBLE_DEATH2 = 146 -- ???
-local WILY_KILL = 65 -- basically BOSS_KILL
-local LOADING = 255
-
--- I neglected to document most of these game states...
-local INVALID_STATES = {195, 247, LOADING, 78, 120}
+local INVALID_STATES = {"loading", "get equipped", "stage select"}
 
 local MIRRORED_FLAG = 0x01
 local WEAPON_FLAG = 0x02
@@ -248,12 +231,8 @@ local scrollingUp = false
 local weapon = 0
 local iFrames = 0
 
---[[
-    This function is simple enough that it seems like it should be inline.
-    BUT! I have plans to make an online mode that reads straight from the file
-    and doesn't support savestates, like it used to. Just in case memory usage
-    gets out of hand. That behavior will be handled in this function.
-]]
+-- TODO: Make an online mode that streams straight from the file and doesn't support savestates,
+--   in case memory usage gets out of hand.
 local function readData()
     
     if not ghostData[stageEmu] then
@@ -298,40 +277,6 @@ local function getScreenY(yPos)
     -- end
     
     return y
-end
-
-
---[[
-    Gets gamestate from the stack.
-    
-    "gameState" is actually the low byte of whatever return address happens to be on top of the stack. There's no convenient game state
-    variable that says "We are in a level" or "We are in a menu," so this really is the easiest way to track it. It's equivalent to setting
-    a bunch of callbacks on a bunch of addresses, more or less.
-    
-    This doesn't quite work even on vanilla. I would at least need to change up all the values I'm using.
-    One option is to start at 0x01FE, then repeatedly subtract 13 until it looks right.
-    
-    TODO: Write some more intricate logic so this can support ROM hacks with lots of custom coding. Such as Mega Man 2. lul.
-]]
-local function getGameState()
-    local sp = memory.getregister("s")
-    gui.text(10, 10, string.format("state: %02X", memory.readbyte(0x0100 + sp + 1)))
-    gui.text(10, 20, string.format("old:   %02X", memory.readbyte(0x01FE)))
-    
-    -- Kludge for the pause-exit bug.
-    -- The obvious and natural way to do add a pause-exit feature to Rockman 2 is to simply have the menu code JMP to the level select screen.
-    -- Unfortunately, this leaves 13 extra bytes on the stack, which confuses mm2ghost and can cause crashes if done enough times.
-    -- For this kludge, we iterate backwards in steps of 13 until we find an offset that seems likely.
-    for i = 0xFE, 0x00, -13 do
-        if i <= sp then
-            sp = i + 13
-            break
-        end
-    end
-    
-    gui.text(10, 30, string.format("new:   %02X", memory.readbyte(0x0100 + sp)))
-    
-    return memory.readbyte(0x0100 + sp)
 end
 
 --[[
@@ -400,7 +345,9 @@ end
 
 local function shouldDraw(data)
     for _, state in ipairs(INVALID_STATES) do
-        if gameState==state then return false end
+        if gameState == state then
+            return false
+        end
     end
     
     if not showGhost then return false end
@@ -416,6 +363,8 @@ end
         - much of this can go in an individual ghost update function. Might be tricky with all these pesky local variables.
         - can specify multiple ghosts by separating paths w/ semicolon
 ]]
+-- FIXME: Something's up. We are now offset by 4 frames.
+-- Is it because I merged all the "lOADING" states in record_ghost?
 local function update()
 
     -- It seems scroll is use-then-set, while position is set-then-use, if that makes sense.
@@ -435,11 +384,13 @@ local function update()
     prevGameState = gameState
     scrlXEmu = memory.readbyte(0x1F)
     scrlYEmu = memory.readbyte(0x22)
-    gameState = getGameState()
+    gameState = gs.getGameState()
     iFrames = memory.readbyte(0x4B)
     stageEmu = memory.readbyte(0x2A)
     
-    if gameState==SCROLLING and prevGameState~=SCROLLING then
+    gui.text(10, 10, gameState or "unknown")
+    
+    if gameState == "scrolling" and prevGameState ~= "scrolling" then
         scrollStartFrame = emu.framecount()
     end
     
@@ -465,7 +416,7 @@ local function update()
     -- There's an edge case, however: if your i-frames reach 1 on the exact frame you start to scroll,
     -- this check will not properly set the screen number.
     -- Standard enemy deaths are not a concern.
-    if gameState == SCROLLING and iFrames ~= 1 and scrollDuration >= 32 and scrollDuration <= 91 then
+    if gameState == "scrolling" and iFrames ~= 1 and scrollDuration >= 32 and scrollDuration <= 91 then
         if scrlXEmu==0 and scrlYEmu==0 then
             -- assume boss door for now
             screenEmu = screenEmu - 1
@@ -483,7 +434,7 @@ local function update()
     -- Check if new stage was loaded, based on game state.
     -- Also need to check whether we're loading the same stage as previously, which would indicate a death,
     -- and means the ghost data should NOT be realigned (Certain speedrun strats involve taking an intentional death).
-    if prevGameState == LOADING and gameState == READY and prevLoadedStage ~= stageEmu then        
+    if prevGameState == "loading" and gameState == "ready" and prevLoadedStage ~= stageEmu then        
         prevLoadedStage = stageEmu
         print(string.format("[%d] Loaded stage %d", emu.framecount(), stageEmu))
         if not ghostData[stageEmu] then print("...but no one came.") end
@@ -491,7 +442,7 @@ local function update()
     end
     
     -- game over screen
-    if gameState == MENU then
+    if gameState == "game over" then
         prevLoadedStage = -1
     end
     
