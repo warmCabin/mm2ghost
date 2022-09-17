@@ -26,9 +26,6 @@ local rm2States = {
     [0xC9] = "paused", 
     [0x7D] = "paused",
     [0x93] = "paused",
-    [0x00] = "spike death", -- death lag?
-    [0xC1] = "boss kill" -- Wily boss double death?
-    -- Fuck, [0xF7] = "boss kill"
 }
 
 --[[
@@ -39,7 +36,7 @@ local rm2States = {
     a bunch of callbacks on a bunch of addresses, more or less.
 ]]
 local function classic()
-    local state = memory.readbyte(0x01FE)
+    local state = memory.readbyte(0x01F1)
     gui.text(10, 20, string.format("classic: %02X", state))
     if not state then
         gui.text(10, 60, string.format("Unrecognized game state %02X!", state))
@@ -51,29 +48,31 @@ end
     Kludge for the pause-exit bug.
     The obvious and natural way to do add a pause-exit feature to Rockman 2 is to simply have the menu code JMP to the level select screen.
     Unfortunately, this leaves 13 extra bytes on the stack, which confuses mm2ghost and can cause crashes if done enough times.
-    For this kludge, we iterate backwards in steps of 13 until we pass the stack pointer.
+    For this kludge, we iterate backwards in steps of 13 until we find a non-pause menu address. But what if we're ACTUALLY paused?
+    Well, there are some reliable values 13 frames down the stack that we can use to detect that.
 ]]
 local function pauseExitKludge()
     local sp = memory.getregister("s")
+    local i = 0xFE
     
-    for i = 0xFE, 0x00, -13 do
-        if i <= sp then
-            sp = i + 13
-            break
-        end
+    while memory.readbyte(0x0100 + i) == 0x80 do
+        i = i - 13
     end
     
-    gui.text(10, 30, string.format("pausal: %02X", memory.readbyte(0x0100 + sp)))
+    gui.text(10, 30, string.format("newpa: %02X [i=%02X]", memory.readbyte(0x0100 + i), i))
     
-    return rm2States[memory.readbyte(0x0100 + sp)]
+    return rm2States[memory.readbyte(0x0100 + i)]
+    
 end
 
 
 function mod.getGameState()
     if emu.framecount() >= 20 and classic() ~= pauseExitKludge() then
         gui.text(10, 70, "disagreement")
-        emu.pause()
+        --emu.pause()
     end
+    
+    gui.text(10, 80, string.format("SP: %02X", memory.getregister("s")))
     
     return pauseExitKludge()
 end
