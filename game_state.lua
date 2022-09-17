@@ -56,10 +56,40 @@ local function pauseExitKludge()
     end
 
     return rm2States[memory.readbyte(0x0100 + i)]
-    
 end
 
+local function getBaseRom()
+    -- A random byte from the wait_for_next_frame routine,
+    -- which happens to be the low byte of the read_controllers routine address.
+    -- This is the first byte in bank F that diverges between Rockman 2 and Mega Man 2.
+    local sentinel = memory.readbyte(0xC093)
+    
+    if sentinel == 0xD4 then
+        return "rm2"
+    elseif sentinel == 0xD7 then
+        return "mm2"
+    end
+end
 
+local hash = rom.gethash("md5")
+
+if hash == "770d55a19ae91dcaa9560d6aa7321737" then
+    print("You are playing vanilla Rockman 2.")
+    mod.getGameState = classic
+elseif hash == "0527a0ee512f69e08b8db6dc97964632" then
+    print("You are playing vanilla Mega Man 2.")
+    mod.getGameState = classic
+else
+    local base = getBaseRom()
+    if base == "rm2" then
+        print("You are playing a Rockman 2 hack.")
+        mod.getGameState = pauseExitKludge
+    elseif base == "mm2" then
+        print("You are playing a Mega Man 2 hack.")
+        mod.getGameState = classic
+    else
+        print("Unrecognized base ROM! Your safety cannot be guaranteed.")
+        mod.getGameState = classic
     end
 end
 
