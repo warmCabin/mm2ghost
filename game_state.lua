@@ -37,10 +37,6 @@ local rm2States = {
 ]]
 local function classic()
     local state = memory.readbyte(0x01F1)
-    gui.text(10, 20, string.format("classic: %02X", state))
-    if not state then
-        gui.text(10, 60, string.format("Unrecognized game state %02X!", state))
-    end
     return rm2States[state]
 end
 
@@ -58,23 +54,13 @@ local function pauseExitKludge()
     while memory.readbyte(0x0100 + i) == 0x80 do
         i = i - 13
     end
-    
-    gui.text(10, 30, string.format("newpa: %02X [i=%02X]", memory.readbyte(0x0100 + i), i))
-    
+
     return rm2States[memory.readbyte(0x0100 + i)]
     
 end
 
 
-function mod.getGameState()
-    if emu.framecount() >= 20 and classic() ~= pauseExitKludge() then
-        gui.text(10, 70, "disagreement")
-        --emu.pause()
     end
-    
-    gui.text(10, 80, string.format("SP: %02X", memory.getregister("s")))
-    
-    return pauseExitKludge()
 end
 
 return mod

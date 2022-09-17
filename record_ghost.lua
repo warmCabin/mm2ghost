@@ -90,7 +90,7 @@ local hideLength
 
 -- TODO: invalid states??? {"paused", "scrolling", "game over", "ready"}
 -- TODO: Why is "game over" in here?
--- TODO: teleport in?
+-- TODO: teleport in? Need to freeze the anim timer or something.
 local validStates = {"playing", "lagging", "refill", "game over", "boss kill", "wily kill", "spike death", "enemy death"}
 local freezeStates = {"refill", "lagging"}
 local climbAnims  = {0x1B, 0x1C, 0x1E}
