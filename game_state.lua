@@ -29,6 +29,53 @@ local rm2States = {
 }
 
 --[[
+    Other Rockman2 BM notes:
+      - Something's up with teleporting out of boss rooms. Neither BM nor vanilla uses $F9 there.
+          Mega Man stops when he hits the top of the screen in vanilla, but keeps looping in BM. Wtf?
+      - Ghost disappears in vertical scroll situations.
+]]
+local bmStates = {
+    [0xA9] = "playing", -- CHANGED
+    -- [100] = "playing", -- Boss rush?
+    [0x8C] = "lagging", -- CHANGED
+    [0xA2] = "lagging", -- CHANGED
+    -- [93] = "lagging", -- Boss rush? Do we care?
+    -- [999] = "refill", -- Not aplicable beceause it doesn't freeze you.
+    [0x77] = "paused", -- CHANGED
+    [0x93] = "scrolling", -- CHANGED
+    -- Why
+    [0x5B] = "get equipped",
+    [0xFD] = "get equipped",
+    [0x02] = "get equipped",
+    [0xEA] = "get equipped",
+    [0xBA] = "get equipped",
+    [0x68] = "get equipped",
+    [0x6E] = "get equipped",
+    [0x7E] = "get equipped",
+    [0x8A] = "get equipped",
+    [0x8F] = "get equipped",
+    [0x94] = "get equipped",
+    [0xCD] = "get equipped",
+    [0xE5] = "get equipped",
+    [0x03] = "get equipped",
+    [0x30] = "get equipped",
+    [0x38] = "get equipped",
+    [0x78] = "get equipped",
+    
+    [0x52] = "ready", -- Unchanged
+    [0x86] = "boss kill", -- CHANGED
+    -- [134] = "spike death", -- Should both of these just be "dying"?
+    [0x92] = "enemy death", -- Figure out
+    [0x41] = "wily kill",
+    [0xC3] = "loading", -- Unchanged
+    [0xF7] = "loading", -- Unchanged
+    [0xFF] = "loading", -- Unchanged
+    [0x78] = "stage select", -- Unchanged
+    --[0x4E] = "get equipped",
+    [0x67] = "teleporting in", -- Unchanged
+}
+
+--[[
     Gets gamestate from the stack.
     
     "gameState" is actually the low byte of whatever return address happens to be on top of the stack. There's no convenient game state
@@ -36,7 +83,7 @@ local rm2States = {
     a bunch of callbacks on a bunch of addresses, more or less.
 ]]
 local function classic()
-    local state = memory.readbyte(0x01F1)
+    local state = memory.readbyte(0x01FE)
     return rm2States[state]
 end
 
@@ -57,6 +104,23 @@ local function pauseExitKludge()
 
     return rm2States[memory.readbyte(0x0100 + i)]
 end
+
+-- Need to figure out a better check here. Presumably based on scroll flags?
+-- I'm not sure what the $C251 or $C259 return addresses are, but they seem to appear once you get Gemini Time.
+local function rm2Bm()
+    local topOfStack = memory.readword(0x01FE)
+    local state = 0
+    if topOfStack == 0xC259 or topOfStack == 0xC251 then
+        state = memory.readbyte(0x01FC)
+    else
+        state = memory.readbyte(0x01FE)
+    end
+    
+    gui.text(10, 20, string.format("state=%02X", state))
+    return bmStates[state]
+end
+
+
 
 local function getBaseRom()
     -- A random byte from the wait_for_next_frame routine,
@@ -79,6 +143,9 @@ if hash == "770d55a19ae91dcaa9560d6aa7321737" then
 elseif hash == "0527a0ee512f69e08b8db6dc97964632" then
     print("You are playing vanilla Mega Man 2.")
     mod.getGameState = classic
+elseif hash == "a4b6728bd51fe9b8913525267c209f32" then
+    print("You are playing Rockman 2: Basic Master v1.2")
+    mod.getGameState = rm2Bm
 else
     local base = getBaseRom()
     if base == "rm2" then
