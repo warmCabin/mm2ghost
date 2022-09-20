@@ -171,21 +171,30 @@ flip[0x01][2] = ...
 ]]
 
 -- Stored as NES palette indexes so ghost colors will match your settings.
-local palettes = {} -- outline, body, undies
-palettes[0]  = {"P0F", "P2C", "P11"} -- P
-palettes[1]  = {"P0F", "P28", "P15"} -- H
-palettes[2]  = {"P0F", "P30", "P11"} -- A
-palettes[3]  = {"P0F", "P30", "P19"} -- W
-palettes[4]  = {"P0F", "P30", "P00"} -- B
-palettes[5]  = {"P0F", "P34", "P25"} -- Q
-palettes[6]  = {"P0F", "P34", "P14"} -- F
-palettes[7]  = {"P0F", "P37", "P18"} -- M
-palettes[8]  = {"P0F", "P30", "P26"} -- C
-palettes[9]  = {"P0F", "P30", "P16"} -- 1
-palettes[10] = palettes[9]           -- 2
-palettes[11] = palettes[9]           -- 3
+local basePalettes = { -- outline, body, undies
+    [0]  = {"P0F", "P2C", "P11"}, -- P
+    [1]  = {"P0F", "P28", "P15"}, -- H
+    [2]  = {"P0F", "P30", "P11"}, -- A
+    [3]  = {"P0F", "P30", "P19"}, -- W
+    [4]  = {"P0F", "P30", "P00"}, -- B
+    [5]  = {"P0F", "P34", "P25"}, -- Q
+    [6]  = {"P0F", "P34", "P14"}, -- F
+    [7]  = {"P0F", "P37", "P18"}, -- M
+    [8]  = {"P0F", "P30", "P26"}, -- C
+    [9]  = {"P0F", "P30", "P16"}, -- 1
+    [10] = {"P0F", "P30", "P16"}, -- 2
+    [11] = {"P0F", "P30", "P16"}, -- 3
+}
+mod.palettes = basePalettes
 
-mod.palettes = palettes
+function mod.setPaletteOverrides(overrides)
+    if overrides then
+        setmetatable(overrides, {__index = basePalettes})
+        mod.palettes = overrides
+    else
+        mod.palettes = basePalettes
+    end
+end
 
 local function setPalette(gdPal, index, r, g, b, a)
     index = (index - 1) * 4 + 1
@@ -207,7 +216,7 @@ end
 ]]
 local function palettize(gdStr, pIndex)
 
-    local pal = palettes[pIndex]
+    local pal = mod.palettes[pIndex]
     if not pal then
         -- TODO: Make an on-screen queue or something. No more hardcoded coordinates.
         gui.text(10, 20, "Unknown weapon "..pIndex)

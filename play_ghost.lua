@@ -15,6 +15,9 @@ local bit = require("bit")
 local anm = require("animation")
 local loader = require("load_ghost")
 local gs = require("game_state")
+
+anm.setPaletteOverrides(gs.paletteOverrides)
+
 local cfg = {}
 
 -- janky Lua try/catch

@@ -75,6 +75,12 @@ local bmStates = {
     [0x67] = "teleporting in", -- Unchanged
 }
 
+local bmPalOverrides = {
+    [4] = {"P0F", "P38", "P2B"}, -- Flame Candle
+    [5] = {"P0F", "P34", "P07"}, -- Snake Buster
+    [8] = {"P0F", "P24", "P08"}, -- Gemini Time
+}
+
 --[[
     Gets gamestate from the stack.
     
@@ -146,6 +152,7 @@ elseif hash == "0527a0ee512f69e08b8db6dc97964632" then
 elseif hash == "a4b6728bd51fe9b8913525267c209f32" then
     print("You are playing Rockman 2: Basic Master v1.2")
     mod.getGameState = rm2Bm
+    mod.paletteOverrides = bmPalOverrides
 else
     local base = getBaseRom()
     if base == "rm2" then
