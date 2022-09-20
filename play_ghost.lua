@@ -14,9 +14,9 @@
 local bit = require("bit")
 local anm = require("animation")
 local loader = require("load_ghost")
-local gs = require("game_state")
+local ru = require("rom_utils")
 
-anm.setPaletteOverrides(gs.paletteOverrides)
+anm.setPaletteOverrides(ru.paletteOverrides)
 
 local cfg = {}
 
@@ -387,7 +387,7 @@ local function update()
     prevGameState = gameState
     scrlXEmu = memory.readbyte(0x1F)
     scrlYEmu = memory.readbyte(0x22)
-    gameState = gs.getGameState()
+    gameState = ru.getGameState()
     iFrames = memory.readbyte(0x4B)
     stageEmu = memory.readbyte(0x2A)
     

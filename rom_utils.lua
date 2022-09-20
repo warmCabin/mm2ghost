@@ -98,7 +98,7 @@ end
     The obvious and natural way to do add a pause-exit feature to Rockman 2 is to simply have the menu code JMP to the level select screen.
     Unfortunately, this leaves 13 extra bytes on the stack, which confuses mm2ghost and can cause crashes if done enough times.
     For this kludge, we iterate backwards in steps of 13 until we find a non-pause menu address. But what if we're ACTUALLY paused?
-    Well, there are some reliable values 13 frames down the stack that we can use to detect that.
+    Well, there are some reliable values 13 bytes down the stack that we can use to detect that.
 ]]
 local function pauseExitKludge()
     local sp = memory.getregister("s")
@@ -141,18 +141,27 @@ local function getBaseRom()
     end
 end
 
-local hash = rom.gethash("md5")
+local hashTable = {
+    ["770d55a19ae91dcaa9560d6aa7321737"] = {
+        name = "vanilla Rockman 2",
+        gameState = classic
+    },
+    ["0527a0ee512f69e08b8db6dc97964632"] = {
+        name = "vanilla Mega Man 2",
+        gameState = classic
+    },
+    ["a4b6728bd51fe9b8913525267c209f32"] = {
+        name = "Rockman 2: Basic Master v1.2",
+        gameState = rm2Bm,
+        overrides = bmPalOverrides
+    },
+}
 
-if hash == "770d55a19ae91dcaa9560d6aa7321737" then
-    print("You are playing vanilla Rockman 2.")
-    mod.getGameState = classic
-elseif hash == "0527a0ee512f69e08b8db6dc97964632" then
-    print("You are playing vanilla Mega Man 2.")
-    mod.getGameState = classic
-elseif hash == "a4b6728bd51fe9b8913525267c209f32" then
-    print("You are playing Rockman 2: Basic Master v1.2")
-    mod.getGameState = rm2Bm
-    mod.paletteOverrides = bmPalOverrides
+local romData = hashTable[rom.gethash("md5")]
+if romData then
+    print(string.format("You are playing %s.", romData.name))
+    mod.getGameState = romData.gameState
+    mod.paletteOverrides = romData.overrides
 else
     local base = getBaseRom()
     if base == "rm2" then

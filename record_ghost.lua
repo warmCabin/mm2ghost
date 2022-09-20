@@ -8,7 +8,7 @@
 
 local bit = require("bit")
 local loader = require("load_ghost")
-local gs = require("game_state")
+local ru = require("rom_utils")
 local rshift, band = bit.rshift, bit.band
 local cfg = {}
 
@@ -157,7 +157,7 @@ local HIDE_FLAG = 64
 local function main()
 
     prevGameState = gameState
-    gameState = gs.getGameState()
+    gameState = ru.getGameState()
 
     if hidden then
         if not shouldHide() then
