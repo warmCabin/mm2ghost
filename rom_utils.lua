@@ -32,6 +32,7 @@ local rm2States = {
     Other Rockman2 BM notes:
       - Something's up with teleporting out of boss rooms. Neither BM nor vanilla uses $F9 there.
           Mega Man stops when he hits the top of the screen in vanilla, but keeps looping in BM. Wtf?
+          In both versions, Mega Man is killed with an LSR $0420. This is why he disappears.
       - Ghost disappears in vertical scroll situations.
 ]]
 local bmStates = {

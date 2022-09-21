@@ -140,10 +140,11 @@ local function getAnimIndex()
     end 
 end
 
--- TODO: This doesn't seem to pick up on death.
--- I can't remember if there's a reason READY is an extra state here.
+-- We need to allow the "ready" state through so we can detect stage load events.
+-- Is there any reason "ready" it can't just be a valid state?
 local function shouldHide()
-    return not validState(gameState) and gameState ~= "ready"
+    local flags = memory.readbyte(0x0420)
+    return (bit.band(flags, 0x80) == 0 or not validState(gameState)) and gameState ~= "ready"
 end
 
 local MIRRORED_FLAG = 1
