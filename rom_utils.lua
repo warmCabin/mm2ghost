@@ -76,9 +76,10 @@ local bmStates = {
 }
 
 local bmPalOverrides = {
-    [4] = {"P0F", "P38", "P2B"}, -- Flame Candle
-    [5] = {"P0F", "P34", "P07"}, -- Snake Buster
-    [8] = {"P0F", "P24", "P08"}, -- Gemini Time
+    [4]  = {"P0F", "P38", "P2B"}, -- Flame Candle
+    [5]  = {"P0F", "P34", "P07"}, -- Snake Buster
+    [8]  = {"P0F", "P24", "P08"}, -- Gemini Time
+    [10] = {"P0F", "P2C", "P11"}, -- Item 2 (same as Buster palette)
 }
 
 --[[
