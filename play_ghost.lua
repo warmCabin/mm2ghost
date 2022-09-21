@@ -391,8 +391,6 @@ local function update()
     iFrames = memory.readbyte(0x4B)
     stageEmu = memory.readbyte(0x2A)
     
-    gui.text(10, 10, gameState or "unknown")
-    
     if gameState == "scrolling" and prevGameState ~= "scrolling" then
         scrollStartFrame = emu.framecount()
     end

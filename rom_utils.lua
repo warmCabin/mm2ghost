@@ -124,7 +124,6 @@ local function rm2Bm()
         state = memory.readbyte(0x01FE)
     end
     
-    gui.text(10, 20, string.format("state=%02X", state))
     return bmStates[state]
 end
 
